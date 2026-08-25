@@ -14,6 +14,14 @@ STRATCH is a game where you are the quant. Instead of filling in a strategy form
 Build → Test My Strategy → Backtest → Score → Improve → Export
 ```
 
+The app is split into two screens, so the loop reads as clear steps:
+
+1. **Landing** — the welcome page; hit *Start building*.
+2. **Build & Test** — snap blocks and validate them, all on one screen.
+3. **Backtest & Results** — choose the market and see your score, charts and trade history on the next screen.
+
+A step bar (`1 Build · 2 Test · 3 Backtest · 4 Results`) stays on top so you can jump between steps anytime.
+
 Every strategy lives in two fixed zones — you never create them:
 
 | Zone | What it does |

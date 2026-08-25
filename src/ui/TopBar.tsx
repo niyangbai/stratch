@@ -1,5 +1,5 @@
 // ─────────────────────────────────────────────────────────────────────────────
-// Top bar — brand, scrolling market ticker, primary actions.
+// Top bar — brand + scrolling market ticker + page-specific actions (children).
 // ─────────────────────────────────────────────────────────────────────────────
 
 const TICKS: [string, number, number][] = [
@@ -15,7 +15,7 @@ const TICKS: [string, number, number][] = [
   ['DOT/USDT', 5.62, -2.4],
 ];
 
-export function TopBar(props: { onTest: () => void; onBacktest: () => void; onExport: () => void }) {
+export function TopBar({ children }: { children?: React.ReactNode }) {
   const doubled = [...TICKS, ...TICKS];
   return (
     <div className="topbar">
@@ -37,9 +37,7 @@ export function TopBar(props: { onTest: () => void; onBacktest: () => void; onEx
           ))}
         </div>
       </div>
-      <button className="btn" onClick={props.onExport}>Export</button>
-      <button className="btn" onClick={props.onTest}>⚡ Test</button>
-      <button className="btn btn--primary" onClick={props.onBacktest}>▶ Backtest</button>
+      {children}
     </div>
   );
 }
