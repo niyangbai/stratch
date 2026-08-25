@@ -172,6 +172,7 @@ export const StrategyEditor = forwardRef<StrategyEditorHandle, Props>(function S
 
     // initial content — saved state or starter
     const loaded = loadState();
+    if (!loaded) setVars([{ id: 'bet', name: 'bet' }]); // seed before loading blocks that reference `bet`
     const cur = getState();
     const sJson = loaded ? cur.setupJson : starterSetupJson();
     const oJson = loaded ? cur.onBarJson : starterOnBarJson();
@@ -181,7 +182,6 @@ export const StrategyEditor = forwardRef<StrategyEditorHandle, Props>(function S
     } catch {
       /* fall through to empty */
     }
-    if (!loaded) setVars([{ id: 'bet', name: 'bet' }]);
 
     let timer: ReturnType<typeof setTimeout> | null = null;
     const sync = () => {
@@ -249,9 +249,9 @@ export const StrategyEditor = forwardRef<StrategyEditorHandle, Props>(function S
       const ws = wsRef.current;
       if (!ws) return;
       resetState();
+      setVars([{ id: 'bet', name: 'bet' }]); // seed before loading blocks that reference `bet`
       Blockly.serialization.workspaces.load(starterSetupJson(), ws.setup);
       Blockly.serialization.workspaces.load(starterOnBarJson(), ws.onBar);
-      setVars([{ id: 'bet', name: 'bet' }]);
       const s = Blockly.serialization.workspaces.save(ws.setup);
       const o = Blockly.serialization.workspaces.save(ws.onBar);
       syncWorkspaces(s, o);

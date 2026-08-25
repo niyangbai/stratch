@@ -115,7 +115,7 @@ export function importState(payload: any): boolean {
 
 // ── persistence ──────────────────────────────────────────────────────────────
 
-const LS_KEY = 'stratch:v1';
+const LS_KEY = 'stratch:v2';
 
 export function saveState() {
   const payload = { vars: state.vars, setupJson: state.setupJson, onBarJson: state.onBarJson };
