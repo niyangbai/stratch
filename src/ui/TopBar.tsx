@@ -2,6 +2,8 @@
 // Top bar — brand + scrolling market ticker + page-specific actions (children).
 // ─────────────────────────────────────────────────────────────────────────────
 
+import { Icon } from './Icon';
+
 const TICKS: [string, number, number][] = [
   ['BTC/USDT', 43218.4, 1.24],
   ['ETH/USDT', 2417.9, -0.62],
@@ -32,12 +34,13 @@ export function TopBar({ children }: { children?: React.ReactNode }) {
             <div className="tick" key={i}>
               <span className="tick__pair">{t[0]}</span>
               <span className="tick__px">{t[1].toLocaleString('en-US', { maximumFractionDigits: 4 })}</span>
-              <span className={`tick__chg ${t[2] >= 0 ? 'up' : 'down'}`}>{t[2] >= 0 ? '▲' : '▼'} {Math.abs(t[2]).toFixed(2)}%</span>
+              <span className={`tick__chg ${t[2] >= 0 ? 'up' : 'down'}`}><Icon name={t[2] >= 0 ? 'arrowUp' : 'arrowDown'} size={11} /> {Math.abs(t[2]).toFixed(2)}%</span>
             </div>
           ))}
         </div>
       </div>
       {children}
+      <a className="gh-link" href="https://github.com/niyangbai/stratch" target="_blank" rel="noreferrer" title="View on GitHub"><Icon name="github" size={18} /></a>
     </div>
   );
 }

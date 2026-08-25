@@ -4,7 +4,7 @@
 // every change and pushed into the store.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { forwardRef, useEffect, useImperativeHandle, useRef } from 'react';
+import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react';
 import * as Blockly from 'blockly';
 import {
   registerBlocks, setProviders, buildToolbox, getTheme, starterSetupJson, starterOnBarJson,
@@ -18,6 +18,7 @@ export interface StrategyEditorHandle {
   redo: () => void;
   loadExample: () => void;
   clearAll: () => void;
+  loadJson: (setupJson: any, onBarJson: any) => void;
 }
 
 interface Props {
@@ -50,6 +51,29 @@ export const StrategyEditor = forwardRef<StrategyEditorHandle, Props>(function S
 
   const state = useEditorState();
 
+  // resizable SETUP / ON EVERY BAR split
+  const splitRef = useRef<HTMLDivElement>(null);
+  const [setupPct, setSetupPct] = useState(50);
+  function onSplitDown(e: React.PointerEvent) {
+    e.preventDefault();
+    const container = splitRef.current;
+    if (!container) return;
+    const onMove = (ev: PointerEvent) => {
+      const rect = container.getBoundingClientRect();
+      setSetupPct(Math.min(82, Math.max(18, ((ev.clientY - rect.top) / rect.height) * 100)));
+    };
+    const onUp = () => {
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('pointerup', onUp);
+      document.body.style.userSelect = '';
+      document.body.style.cursor = '';
+    };
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup', onUp);
+    document.body.style.userSelect = 'none';
+    document.body.style.cursor = 'row-resize';
+  }
+
   // refresh toolbox + callFn blocks when functions change
   useEffect(() => {
     const ws = wsRef.current;
@@ -63,6 +87,29 @@ export const StrategyEditor = forwardRef<StrategyEditorHandle, Props>(function S
       }
     }
   }, [state.functions]);
+
+  // Blockly routes keyboard shortcuts through getMainWorkspace() (a single
+  // workspace), which breaks delete/backspace when a block is selected in the
+  // other workspace. Handle delete at the capture phase as a reliable fallback.
+  useEffect(() => {
+    const isEditable = (t: EventTarget | null) =>
+      t instanceof HTMLElement &&
+      (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || t.isContentEditable);
+
+    const onKey = (e: KeyboardEvent) => {
+      if (isEditable(e.target)) return;
+      if (e.key !== 'Delete' && e.key !== 'Backspace') return;
+      const sel = Blockly.getSelected() as any;
+      if (sel && typeof sel.isDeletable === 'function' && sel.isDeletable()) {
+        e.preventDefault();
+        e.stopPropagation();
+        if (typeof sel.checkAndDelete === 'function') sel.checkAndDelete();
+        else if (typeof sel.dispose === 'function') sel.dispose();
+      }
+    };
+    document.addEventListener('keydown', onKey, true);
+    return () => document.removeEventListener('keydown', onKey, true);
+  }, []);
 
   useEffect(() => {
     registerBlocks();
@@ -171,11 +218,25 @@ export const StrategyEditor = forwardRef<StrategyEditorHandle, Props>(function S
       syncWorkspaces(Blockly.serialization.workspaces.save(ws.setup), Blockly.serialization.workspaces.save(ws.onBar));
       saveState();
     },
+    loadJson(setupJson, onBarJson) {
+      const ws = wsRef.current;
+      if (!ws) return;
+      ws.setup.clear();
+      ws.onBar.clear();
+      try {
+        Blockly.serialization.workspaces.load(setupJson ?? { blocks: { blocks: [] } }, ws.setup);
+        Blockly.serialization.workspaces.load(onBarJson ?? { blocks: { blocks: [] } }, ws.onBar);
+      } catch {
+        /* ignore malformed JSON */
+      }
+      syncWorkspaces(Blockly.serialization.workspaces.save(ws.setup), Blockly.serialization.workspaces.save(ws.onBar));
+      saveState();
+    },
   }));
 
   return (
-    <>
-      <div className="editor-region">
+    <div className="editor-split" ref={splitRef}>
+      <div className="editor-region" style={{ flex: `0 0 ${setupPct}%` }}>
         <div className="region__head">
           <span className="bar" />
           <span>SETUP</span>
@@ -183,7 +244,10 @@ export const StrategyEditor = forwardRef<StrategyEditorHandle, Props>(function S
         </div>
         <div className="editor-region__ws" ref={setupRef} />
       </div>
-      <div className="editor-region">
+      <div className="editor-splitter" onPointerDown={onSplitDown} title="Drag to resize">
+        <span className="editor-splitter__grip" />
+      </div>
+      <div className="editor-region" style={{ flex: '1 1 0%' }}>
         <div className="region__head">
           <span className="bar" />
           <span>ON EVERY BAR</span>
@@ -191,6 +255,6 @@ export const StrategyEditor = forwardRef<StrategyEditorHandle, Props>(function S
         </div>
         <div className="editor-region__ws" ref={onBarRef} />
       </div>
-    </>
+    </div>
   );
 });

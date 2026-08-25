@@ -1,5 +1,5 @@
 // ─────────────────────────────────────────────────────────────────────────────
-// Natural-language explanation of a strategy (for "Test → Explain" and
+// Natural-language explanation of a strategy (for "Test -> Explain" and
 // for "Why did this trade happen?" attribution).
 // ─────────────────────────────────────────────────────────────────────────────
 

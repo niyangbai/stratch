@@ -4,8 +4,6 @@
 
 STRATCH is a game where you are the quant. Instead of filling in a strategy form, you snap blocks together like Scratch to write a trading strategy, then run it against real crypto history and see how it scores.
 
-> The app is English. Design notes are in [`dev_doc.md`](./dev_doc.md) (Chinese).
-
 ---
 
 ## The loop
@@ -14,13 +12,12 @@ STRATCH is a game where you are the quant. Instead of filling in a strategy form
 Build → Test My Strategy → Backtest → Score → Improve → Export
 ```
 
-The app is split into two screens, so the loop reads as clear steps:
+The app is split into two screens, so the loop reads as two clear steps:
 
-1. **Landing** — the welcome page; hit *Start building*.
-2. **Build & Test** — snap blocks and validate them, all on one screen.
-3. **Backtest & Results** — choose the market and see your score, charts and trade history on the next screen.
+1. **Build & Test** — snap blocks, validate them and export, all on one screen.
+2. **Backtest & Results** — choose the market and see your score, charts and trade history on the next screen.
 
-A step bar (`1 Build · 2 Test · 3 Backtest · 4 Results`) stays on top so you can jump between steps anytime.
+You land on a welcome page first, then a two-step bar (`1 Build & Test · 2 Backtest & Results`) stays on top so you can jump between the two anytime.
 
 Every strategy lives in two fixed zones — you never create them:
 
@@ -55,10 +52,10 @@ IF  Close  >  average of Close over 20 bars
 ```
 
 ### 2 · Test My Strategy
-Hit **⚡ Test**. STRATCH validates your blocks (it will point at any block that's broken) and reads your strategy back to you in plain English — so you know the machine understood exactly what you meant.
+Hit **Test My Strategy**. STRATCH validates your blocks (it will point at any block that's broken) and reads your strategy back to you in plain English — so you know the machine understood exactly what you meant.
 
 ### 3 · Backtest
-Pick the environment — crypto pair, timeframe, date range, starting cash, fee and slippage — then **▶ Run**. The same strategy can be tried instantly on BTC, ETH or SOL and on any timeframe.
+Pick the environment — crypto pair, timeframe, date range, starting cash, fee and slippage — then **Run Backtest**. The same strategy can be tried instantly on BTC, ETH or SOL and on any timeframe.
 
 ### 4 · Score
 You get a **0–100 strategy score** (not just raw return — it weighs performance, benchmark, risk, consistency, robustness and complexity), plus:
@@ -98,3 +95,9 @@ npm run test:engine # headless tests for the strategy engine
 First version: crypto **spot**, **long-only**, **single asset**, bar-based, historical backtest, pure frontend. No login, no backend, no live trading. Data comes from a deterministic synthetic market (reproducible by seed) or live Binance klines — all computed in your browser, in a Web Worker so the UI stays responsive.
 
 Under the hood it's React + TypeScript + [Blockly](https://github.com/google/blockly) (the project Scratch Blocks is forked from) with a dark crypto-terminal theme, and a Web Worker runs the backtest. The block editor compiles into a strategy model that is validated, run, explained, scored and exported from one source.
+
+---
+
+## License
+
+STRATCH is licensed under **AGPL-3.0** (`LICENSE`). Blockly is Apache-2.0 and is used unmodified — see `THIRD_PARTY_NOTICES.md`.

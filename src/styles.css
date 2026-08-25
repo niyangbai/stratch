@@ -239,6 +239,35 @@ body {
   background: #080d16;
 }
 
+/* resizable editor split (SETUP / ON EVERY BAR) */
+.editor-split { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+.editor-splitter {
+  flex: 0 0 auto; height: 12px; cursor: row-resize;
+  display: flex; align-items: center; justify-content: center;
+}
+.editor-splitter__grip {
+  width: 48px; height: 4px; border-radius: 2px;
+  background: var(--border-strong); transition: background 0.12s, box-shadow 0.12s;
+}
+.editor-splitter:hover .editor-splitter__grip { background: var(--accent); box-shadow: 0 0 8px var(--accent); }
+
+/* resizer (side panel width) */
+.resizer { flex: 0 0 6px; }
+.resizer--v { cursor: col-resize; transition: background 0.12s; }
+.resizer--v:hover, .resizer--v:active { background: rgba(0, 230, 168, 0.28); }
+
+/* github link */
+.gh-link {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 30px; height: 30px; border-radius: 8px;
+  color: var(--muted); border: 1px solid var(--border);
+  transition: all 0.12s; flex-shrink: 0;
+}
+.gh-link:hover { color: var(--text); border-color: var(--border-strong); background: rgba(255, 255, 255, 0.04); }
+
+/* landing nav right cluster */
+.landing__nav-right { display: flex; align-items: center; gap: 12px; }
+
 .region { margin-bottom: 40px; max-width: 760px; }
 .region__head {
   display: flex; align-items: center; gap: 10px;

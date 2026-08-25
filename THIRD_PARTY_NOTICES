@@ -1,0 +1,27 @@
+# Third-Party Notices
+
+STRATCH is licensed under the **GNU Affero General Public License v3.0** (`AGPL-3.0`, see `LICENSE`).
+The following open-source libraries are bundled as dependencies and remain under their
+original licenses.
+
+## Blockly — Apache License 2.0
+
+- Project: <https://github.com/google/blockly>
+- License: Apache License 2.0
+
+STRATCH's block editor is built on Blockly (the project Scratch Blocks is forked from).
+Blockly is used unmodified and remains under the Apache License 2.0. Apache-2.0 is
+compatible with AGPL-3.0: the combined work is distributed under AGPL-3.0, while the
+Blockly portions retain their Apache-2.0 copyright notice.
+
+## Other dependencies
+
+| Package | License |
+|---------|---------|
+| React (`react`, `react-dom`) | MIT |
+| react-icons | MIT |
+| Vite | MIT |
+| TypeScript | Apache License 2.0 |
+| tsx | MIT |
+
+The full license texts are available in each package's own repository / `node_modules`.

@@ -1,6 +1,6 @@
 // ─────────────────────────────────────────────────────────────────────────────
-// Headless smoke tests for the Stratch engine (IR → validate → backtest →
-// explain → export). Run with:  npm run test:engine
+// Headless smoke tests for the Stratch engine (IR -> validate -> backtest ->
+// explain -> export). Run with:  npm run test:engine
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { buildStrategy } from '../src/blockly/generator';
@@ -11,10 +11,10 @@ import { explainStrategy } from '../src/engine/explain';
 
 let failures = 0;
 function check(name: string, cond: boolean, extra?: string) {
-  if (cond) console.log(`  ✓ ${name}`);
+  if (cond) console.log(`  ok   ${name}`);
   else {
     failures++;
-    console.error(`  ✗ ${name}${extra ? ' — ' + extra : ''}`);
+    console.error(`  FAIL ${name}${extra ? ' - ' + extra : ''}`);
   }
 }
 

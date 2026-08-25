@@ -7,6 +7,7 @@ import type { EditableFunction } from '../blockly/generator';
 import type { BacktestResult, BacktestConfig, Attribution } from '../engine/run';
 import type { Issue } from '../engine/tools';
 import { PriceChart, EquityChart } from './Charts';
+import { Icon } from './Icon';
 
 export const pct = (v: number) => `${(v * 100).toFixed(2)}%`;
 export const money = (v: number) =>
@@ -25,6 +26,7 @@ export function BuildPanel(props: {
   onDeleteVar: (id: string) => void;
   onEditFn: (id: string) => void;
   onDeleteFn: (id: string) => void;
+  onLoadJson: (file: File) => void;
 }) {
   return (
     <div>
@@ -59,10 +61,10 @@ export function BuildPanel(props: {
                   if (name) props.onRenameVar(v.id, name);
                 }}
               >
-                ✎
+                <Icon name="pencil" size={12} />
               </button>
               <button className="mini danger" onClick={() => props.onDeleteVar(v.id)}>
-                ✕
+                <Icon name="x" size={12} />
               </button>
             </span>
           </div>
@@ -83,10 +85,10 @@ export function BuildPanel(props: {
             </span>
             <span className="var-actions">
               <button className="mini" onClick={() => props.onEditFn(f.id)}>
-                ✎
+                <Icon name="pencil" size={12} />
               </button>
               <button className="mini danger" onClick={() => props.onDeleteFn(f.id)}>
-                ✕
+                <Icon name="x" size={12} />
               </button>
             </span>
           </div>
@@ -94,6 +96,20 @@ export function BuildPanel(props: {
         <button className="palette__make" onClick={props.onMakeFn}>
           + Make a Block
         </button>
+      </div>
+
+      <div className="card">
+        <div className="card__title">Save / Load</div>
+        <p className="hint" style={{ marginBottom: 10 }}>Load a strategy you exported as JSON to restore it.</p>
+        <label className="btn" style={{ width: '100%', justifyContent: 'center', cursor: 'pointer' }}>
+          <Icon name="upload" size={14} /> Load strategy (.json)
+          <input
+            type="file"
+            accept=".json,application/json"
+            style={{ display: 'none' }}
+            onChange={(e) => { const f = e.target.files?.[0]; if (f) props.onLoadJson(f); e.target.value = ''; }}
+          />
+        </label>
       </div>
     </div>
   );
@@ -112,7 +128,7 @@ export function TestPanel(props: {
   return (
     <div>
       <button className="btn btn--primary" style={{ width: '100%', justifyContent: 'center', height: 38, marginBottom: 14 }} onClick={props.onTest}>
-        ⚡ Test My Strategy
+        <Icon name="zap" size={14} /> Test My Strategy
       </button>
 
       {props.issues === null && <p className="hint">Run the test to validate the blocks and read an English explanation.</p>}
@@ -122,7 +138,7 @@ export function TestPanel(props: {
           <div className="card__title">
             Validate — {errors.length} error{errors.length === 1 ? '' : 's'}, {warnings.length} warning{warnings.length === 1 ? '' : 's'}
           </div>
-          {props.issues.length === 0 && <div className="empty-note" style={{ color: '#00e6a8' }}>✓ All checks passed.</div>}
+          {props.issues.length === 0 && <div className="empty-note" style={{ color: '#00e6a8', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}><Icon name="check" size={14} /> All checks passed.</div>}
           {props.issues.map((iss, i) => (
             <div key={i} className={`issue issue--${iss.severity}`}>
               <div className="issue__icon">{iss.severity === 'error' ? '!' : '!'}</div>
@@ -130,7 +146,7 @@ export function TestPanel(props: {
                 <div>{iss.message}</div>
                 {iss.blockId && (
                   <button className="link" onClick={() => props.onHighlight(iss.blockId!)}>
-                    highlight block →
+                    highlight block <Icon name="arrowRight" size={11} />
                   </button>
                 )}
               </div>
@@ -208,7 +224,7 @@ export function BacktestPanel(props: {
         </div>
       </div>
       <button className="btn btn--primary" style={{ width: '100%', justifyContent: 'center', height: 38 }} onClick={props.onRun} disabled={props.running}>
-        {props.running ? 'Running…' : '▶ Run Backtest'}
+        {props.running ? 'Running…' : <><Icon name="play" size={14} /> Run Backtest</>}
       </button>
     </div>
   );
@@ -311,7 +327,7 @@ export function ResultsPanel(props: {
                   <div className="mono" style={{ color: '#cfe0f2' }}>{t.reason.text}</div>
                   {t.reason.leaves.map((l, j) => (
                     <div key={j} className="mono" style={{ fontSize: 11, color: l.result ? '#00e6a8' : '#ff4d5e' }}>
-                      {l.label} → {money(l.a)} {l.op} {money(l.b)}
+                      {l.label}: {money(l.a)} {l.op} {money(l.b)}
                     </div>
                   ))}
                 </div>
@@ -344,12 +360,30 @@ export function ResultsPanel(props: {
 
 // ── Export ───────────────────────────────────────────────────────────────────
 
-export function ExportPanel(props: { natural: string; js: string }) {
+export function ExportPanel(props: { natural: string; js: string; json: string }) {
   const copy = (text: string) => {
     navigator.clipboard?.writeText(text).then(() => alert('Copied to clipboard'));
   };
+  const download = (text: string, filename: string) => {
+    const blob = new Blob([text], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
   return (
     <div>
+      <div className="card">
+        <div className="card__title" style={{ display: 'flex', alignItems: 'center' }}>
+          <span style={{ flex: 1 }}>Strategy JSON</span>
+          <button className="btn" onClick={() => copy(props.json)}>Copy</button>
+          <button className="btn btn--primary" onClick={() => download(props.json, 'stratch-strategy.json')}><Icon name="download" size={14} /> Download</button>
+        </div>
+        <p className="hint" style={{ marginBottom: 8 }}>Save your strategy as a file, then load it back from the Build tab.</p>
+        <pre className="code" style={{ maxHeight: 220 }}>{props.json}</pre>
+      </div>
       <div className="card">
         <div className="card__title" style={{ display: 'flex', alignItems: 'center' }}>
           <span style={{ flex: 1 }}>Natural language</span>

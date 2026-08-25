@@ -19,7 +19,7 @@ export interface Series {
   source: 'synthetic' | 'binance';
 }
 
-/** Deterministic PRNG (mulberry32). Same seed → same market. */
+/** Deterministic PRNG (mulberry32). Same seed -> same market. */
 export function mulberry32(seed: number): () => number {
   let a = seed >>> 0;
   return function () {

@@ -1,5 +1,5 @@
 // ─────────────────────────────────────────────────────────────────────────────
-// Blockly serialization JSON  →  Stratch Strategy IR.
+// Blockly serialization JSON  ->  Stratch Strategy IR.
 // The Blockly workspace is only an editing surface; the IR stays the single
 // source of truth for validate / run / explain / export.
 // Block ids are preserved from Blockly so error highlighting can map back.
@@ -62,7 +62,7 @@ function convertBlock(json: Json, blocks: Record<string, Block>, functions: Edit
     }
   }
 
-  // callFn: positional args → parameter names
+  // callFn: positional args -> parameter names
   if (type === 'callFn') {
     const fn = functions.find((f) => f.id === String(block.fields.fn));
     const values: Record<string, string | null> = {};

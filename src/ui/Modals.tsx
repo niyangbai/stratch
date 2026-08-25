@@ -8,6 +8,7 @@ import * as Blockly from 'blockly';
 import { registerBlocks, setParamProvider, getTheme, buildFnToolbox } from '../blockly/blocks';
 import { setFunctionReturnJson, deleteFunction } from '../store';
 import type { EditableFunction } from '../blockly/generator';
+import { Icon } from './Icon';
 
 function Modal({ title, children, onClose, width = 520 }: { title: string; children: React.ReactNode; onClose: () => void; width?: number }) {
   return (
@@ -15,7 +16,7 @@ function Modal({ title, children, onClose, width = 520 }: { title: string; child
       <div className="modal" style={{ width }}>
         <div className="modal__head">
           {title}
-          <span className="close" onClick={onClose}>✕</span>
+          <span className="close" onClick={onClose}><Icon name="x" size={16} /></span>
         </div>
         <div className="modal__body">{children}</div>
       </div>

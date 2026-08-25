@@ -107,6 +107,39 @@ export function syncWorkspaces(setupJson: any, onBarJson: any) {
   emit();
 }
 
+// ── JSON export / import ─────────────────────────────────────────────────────
+
+export function exportStateJson(): string {
+  return JSON.stringify(
+    { version: 1, vars: state.vars, functions: state.functions, setupJson: state.setupJson, onBarJson: state.onBarJson },
+    null,
+    2,
+  );
+}
+
+/** Import vars + functions from a saved payload. The block workspaces are
+ *  loaded separately by the editor (so Blockly can re-render them). */
+export function importState(payload: any): boolean {
+  if (!payload || typeof payload !== 'object') return false;
+  const rawVars = Array.isArray(payload.vars) ? payload.vars : [];
+  const rawFns = Array.isArray(payload.functions) ? payload.functions : [];
+  const vars: VarDef[] = rawVars
+    .filter((v: any) => v && typeof v.name === 'string' && v.name.trim())
+    .map((v: any) => ({ id: typeof v.id === 'string' ? v.id : newId(), name: v.name }));
+  const functions: EditableFunction[] = rawFns
+    .filter((f: any) => f && typeof f.name === 'string' && f.name.trim())
+    .map((f: any) => ({
+      id: typeof f.id === 'string' ? f.id : newId(),
+      name: f.name,
+      params: Array.isArray(f.params) ? f.params.filter((p: any) => typeof p === 'string') : [],
+      returnJson: f.returnJson ?? null,
+    }));
+  state = { ...state, vars, functions };
+  state = rebuild();
+  emit();
+  return true;
+}
+
 // ── persistence ──────────────────────────────────────────────────────────────
 
 const LS_KEY = 'stratch:v1';
