@@ -65,7 +65,7 @@ function makeField(p: Part, def: BlockDef): Blockly.Field {
   }
   if (f === 'number') {
     const val = typeof dflt === 'number' ? dflt : 0;
-    return new Blockly.FieldNumber(val, null, null, 4);
+    return new Blockly.FieldNumber(val);
   }
   if (f === 'var') {
     const field = new Blockly.FieldDropdown(() => varOptions());

@@ -7,6 +7,7 @@ import { useMemo, useRef, useState } from 'react';
 import { StrategyEditor, type StrategyEditorHandle } from './blockly/StrategyEditor';
 import { useEditorState, addVar, renameVar, deleteVar, importState, exportStateJson } from './store';
 import type { BacktestConfig, BacktestResult, Attribution } from './engine/run';
+import { computeBacktest, type BacktestOutput } from './engine/compute';
 import { validate, exportJs, exportNatural, type Issue } from './engine/tools';
 import { explainStrategy } from './engine/explain';
 import { TopBar } from './ui/TopBar';
@@ -95,13 +96,6 @@ export default function App() {
     setPage(n === 1 ? 'build' : 'backtest');
   }
 
-  function getWorker(): Worker {
-    if (!workerRef.current) {
-      workerRef.current = new Worker(new URL('./engine/worker.ts', import.meta.url), { type: 'module' });
-    }
-    return workerRef.current;
-  }
-
   function highlightIssues(list: Issue[]) {
     editorRef.current?.clearHighlights();
     for (const iss of list) {
@@ -118,43 +112,64 @@ export default function App() {
     highlightIssues(list);
   }
 
+  function getWorker(): Worker {
+    if (!workerRef.current) {
+      workerRef.current = new Worker(new URL('./engine/worker.ts', import.meta.url), { type: 'module' });
+    }
+    return workerRef.current;
+  }
+
+  function runInWorker(): Promise<BacktestOutput> {
+    return new Promise((resolve, reject) => {
+      let settled = false;
+      const worker = getWorker();
+      const timer = setTimeout(() => {
+        if (!settled) { settled = true; reject(new Error('worker timeout')); }
+      }, 3000);
+      worker.onmessage = (e: MessageEvent<{ ok: boolean } & Partial<BacktestOutput> & { error?: string }>) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        if (e.data.ok && e.data.result) resolve(e.data as BacktestOutput);
+        else reject(new Error(e.data.error ?? 'worker returned no result'));
+      };
+      worker.onerror = (e) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        reject(new Error(e.message || 'worker failed to load'));
+      };
+      try {
+        worker.postMessage({ strategy, config });
+      } catch (err) {
+        if (!settled) { settled = true; clearTimeout(timer); reject(err instanceof Error ? err : new Error(String(err))); }
+      }
+    });
+  }
+
   function runBacktest() {
     setRunning(true);
     setSourceNote(null);
     setBtError(null);
 
-    const worker = getWorker();
-    worker.onmessage = (e: MessageEvent<{ ok: boolean; result?: BacktestResult; attribution?: Attribution[]; source?: 'synthetic' | 'binance'; error?: string }>) => {
-      const data = e.data;
-      setRunning(false);
-      if (data.ok && data.result) {
-        setResult(data.result);
-        setAttribution(data.attribution ?? null);
-        if (config.source === 'binance' && data.source === 'synthetic') {
+    // Yield so the "Running…" state paints first.
+    new Promise((r) => setTimeout(r, 30))
+      .then(() => runInWorker().catch(() => computeBacktest(strategy, config))) // worker first, sync fallback
+      .then((out) => {
+        setResult(out.result);
+        setAttribution(out.attribution);
+        console.log('[backtest] result:', JSON.stringify({ trades: out.result.metrics.trades, ret: out.result.metrics.totalReturn, final: out.result.metrics.finalValue }));
+        if (config.source === 'binance' && out.source === 'synthetic') {
           setSourceNote('Binance unavailable — fell back to synthetic data');
         }
         setPage('backtest');
-      } else {
-        const msg = data.error ?? 'unknown error';
-        console.error('[backtest] worker returned error:', msg);
+      })
+      .catch((err) => {
+        console.error('[backtest] failed:', err);
         setSourceNote('Backtest failed');
-        setBtError(msg);
-      }
-    };
-    worker.onerror = (e) => {
-      console.error('[backtest] worker error:', e);
-      setRunning(false);
-      setSourceNote('Backtest failed');
-      setBtError(e.message || 'worker failed to load');
-    };
-    try {
-      worker.postMessage({ strategy, config });
-    } catch (err) {
-      console.error('[backtest] postMessage failed:', err);
-      setRunning(false);
-      setSourceNote('Backtest failed');
-      setBtError(err instanceof Error ? err.message : String(err));
-    }
+        setBtError(err instanceof Error ? err.message : String(err));
+      })
+      .finally(() => setRunning(false));
   }
 
   if (page === 'landing') {

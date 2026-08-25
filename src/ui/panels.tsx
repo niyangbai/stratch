@@ -182,12 +182,10 @@ export function BacktestPanel(props: {
             <option value="binance">Binance (live OHLCV)</option>
           </select>
         ))}
-        <div className="grid2">
-          {field('Starting cash', <input type="number" value={c.startCash} onChange={(e) => set({ startCash: Number(e.target.value) })} />)}
-          {field('Seed', <input type="number" value={c.seed} onChange={(e) => set({ seed: Number(e.target.value) })} />)}
-          {field('Fee (bps)', <input type="number" value={c.feeBps} onChange={(e) => set({ feeBps: Number(e.target.value) })} />)}
-          {field('Slippage (bps)', <input type="number" value={c.slippageBps} onChange={(e) => set({ slippageBps: Number(e.target.value) })} />)}
-        </div>
+        {field('Starting cash', <input type="number" value={c.startCash} onChange={(e) => set({ startCash: Number(e.target.value) })} />)}
+        {field('Seed', <input type="number" value={c.seed} onChange={(e) => set({ seed: Number(e.target.value) })} />)}
+        {field('Fee (bps)', <input type="number" value={c.feeBps} onChange={(e) => set({ feeBps: Number(e.target.value) })} />)}
+        {field('Slippage (bps)', <input type="number" value={c.slippageBps} onChange={(e) => set({ slippageBps: Number(e.target.value) })} />)}
       </div>
       <button className="btn btn--primary" style={{ width: '100%', justifyContent: 'center', height: 38 }} onClick={props.onRun} disabled={props.running}>
         {props.running ? 'Running…' : <><Icon name="play" size={14} /> Run Backtest</>}

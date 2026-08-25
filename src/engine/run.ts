@@ -363,15 +363,18 @@ function doBuy(rt: RT, amountId: string | null, unit: string) {
 
 function doSell(rt: RT, amountId: string | null, unit: string, sellAll: boolean) {
   if (rt.position <= 0) return;
-  const amount = sellAll ? rt.position : evalNum(rt, amountId);
   const close = rt.bars[rt.i].close;
   const slip = rt.cfg.slippageBps / 10000;
   const feeRate = rt.cfg.feeBps / 10000;
   const price = close * (1 - slip);
 
   let qty = 0;
-  if (sellAll || unit === '% of position') qty = rt.position * clamp(amount, 0, 100) / 100;
-  else qty = clamp(amount, 0, rt.position);
+  if (sellAll) {
+    qty = rt.position;
+  } else {
+    const amount = evalNum(rt, amountId);
+    qty = unit === '% of position' ? rt.position * clamp(amount, 0, 100) / 100 : clamp(amount, 0, rt.position);
+  }
   if (qty <= 0) return;
 
   const gross = qty * price;

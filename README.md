@@ -96,9 +96,9 @@ npm run test:engine # headless tests for the strategy engine
 
 ## Scope
 
-First version: crypto **spot**, **long-only**, **single asset**, bar-based, historical backtest, pure frontend. No login, no backend, no live trading. Data comes from a deterministic synthetic market (reproducible by seed) or live Binance klines — all computed in your browser, in a Web Worker so the UI stays responsive.
+First version: crypto **spot**, **long-only**, **single asset**, bar-based, historical backtest, pure frontend. No login, no backend, no live trading. Data comes from a deterministic synthetic market (reproducible by seed) or live Binance klines — all computed in your browser, with the backtest running in a Web Worker (and a synchronous fallback).
 
-Under the hood it's React + TypeScript + [Blockly](https://github.com/google/blockly) (the project Scratch Blocks is forked from) with a dark crypto-terminal theme, and a Web Worker runs the backtest. The block editor compiles into a strategy model that is validated, run, explained, scored and exported from one source.
+Under the hood it's React + TypeScript + [Blockly](https://github.com/google/blockly) (the project Scratch Blocks is forked from) with a dark crypto-terminal theme; the backtest runs in a Web Worker. The block editor compiles into a strategy model that is validated, run, explained, scored and exported from one source.
 
 ---
 
