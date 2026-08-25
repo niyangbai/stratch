@@ -45,6 +45,7 @@ export default function App() {
   const [explanation, setExplanation] = useState<string | null>(null);
   const [running, setRunning] = useState(false);
   const [sourceNote, setSourceNote] = useState<string | null>(null);
+  const [btError, setBtError] = useState<string | null>(null);
   const [modal, setModal] = useState<ModalState>(null);
   const [expandedTrade, setExpandedTrade] = useState<string | null>(null);
   const [sideWidth, setSideWidth] = useState(380);
@@ -118,18 +119,9 @@ export default function App() {
   }
 
   function runBacktest() {
-    const list = validate(strategy);
-    if (list.some((i) => i.severity === 'error')) {
-      setIssues(list);
-      setExplanation(explainStrategy(strategy));
-      setPage('build');
-      setBuildTab('test');
-      highlightIssues(list);
-      return;
-    }
     setRunning(true);
-    setIssues(list);
     setSourceNote(null);
+    setBtError(null);
 
     const worker = getWorker();
     worker.onmessage = (e: MessageEvent<{ ok: boolean; result?: BacktestResult; attribution?: Attribution[]; source?: 'synthetic' | 'binance'; error?: string }>) => {
@@ -143,16 +135,26 @@ export default function App() {
         }
         setPage('backtest');
       } else {
+        const msg = data.error ?? 'unknown error';
+        console.error('[backtest] worker returned error:', msg);
         setSourceNote('Backtest failed');
-        alert('Backtest failed: ' + (data.error ?? 'unknown error'));
+        setBtError(msg);
       }
     };
     worker.onerror = (e) => {
+      console.error('[backtest] worker error:', e);
       setRunning(false);
       setSourceNote('Backtest failed');
-      alert('Backtest worker error: ' + e.message);
+      setBtError(e.message || 'worker failed to load');
     };
-    worker.postMessage({ strategy, config });
+    try {
+      worker.postMessage({ strategy, config });
+    } catch (err) {
+      console.error('[backtest] postMessage failed:', err);
+      setRunning(false);
+      setSourceNote('Backtest failed');
+      setBtError(err instanceof Error ? err.message : String(err));
+    }
   }
 
   if (page === 'landing') {
@@ -182,7 +184,7 @@ export default function App() {
         <>
           <TopBar>
             <StepIndicator current={currentStep} onStep={gotoStep} />
-            <button className="btn btn--primary" onClick={() => setPage('backtest')}>Run Backtest <Icon name="arrowRight" size={14} /></button>
+            <button className="btn btn--primary" onClick={() => setPage('backtest')}>Backtest <Icon name="arrowRight" size={14} /></button>
           </TopBar>
 
           <div className="main">
@@ -192,7 +194,7 @@ export default function App() {
                 <button className="iconbtn" title="Redo (Ctrl+Shift+Z)" onClick={() => editorRef.current?.redo()}><Icon name="redo" size={15} /></button>
                 <span className="divider" />
                 <button className="iconbtn" title="Load example" onClick={() => editorRef.current?.loadExample()}><Icon name="zap" size={15} /></button>
-                <button className="iconbtn" title="Delete selected block" onClick={() => editorRef.current?.deleteSelected()}><Icon name="trash" size={15} /></button>
+                <button className="iconbtn" title="Clear all" onClick={() => editorRef.current?.clearAll()}><Icon name="trash" size={15} /></button>
                 <span className="spacer" />
                 <span className="mono muted" style={{ fontSize: 10 }}>drag from the toolbox · right-click a block for menu</span>
               </div>
@@ -247,6 +249,16 @@ export default function App() {
               <BacktestPanel config={config} setConfig={setConfig} onRun={runBacktest} running={running} />
             </div>
             <div className="results-right">
+              {btError && (
+                <div className="card issue issue--error" style={{ maxWidth: 640 }}>
+                  <div className="issue__icon">!</div>
+                  <div>
+                    <div>Backtest failed</div>
+                    <div className="mono" style={{ fontSize: 12, marginTop: 4 }}>{btError}</div>
+                    <div className="hint" style={{ marginTop: 6 }}>Open the browser console for details, or go back and fix the blocks.</div>
+                  </div>
+                </div>
+              )}
               <ResultsPanel
                 result={result}
                 attribution={attribution}

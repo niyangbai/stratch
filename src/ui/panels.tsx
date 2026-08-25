@@ -202,7 +202,7 @@ function ScoreRing({ score }: { score: number }) {
   const cx = 37, cy = 37, r = 25;
   const circ = 2 * Math.PI * r;
   const off = circ * (1 - score / 100);
-  const color = score >= 70 ? 'var(--up)' : score >= 45 ? 'var(--cyan)' : 'var(--amber)';
+  const color = score >= 70 ? '#00ff9c' : score >= 45 ? '#35d6e8' : '#ffb454';
   // gauge ticks around the ring
   const ticks = [];
   for (let i = 0; i < 36; i++) {

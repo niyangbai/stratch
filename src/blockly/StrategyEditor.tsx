@@ -22,7 +22,6 @@ export interface StrategyEditorHandle {
   loadExample: () => void;
   clearAll: () => void;
   loadJson: (setupJson: any, onBarJson: any) => void;
-  deleteSelected: () => void;
 }
 
 interface Props {
@@ -240,11 +239,6 @@ export const StrategyEditor = forwardRef<StrategyEditorHandle, Props>(function S
     },
     undo() { lastFocused?.undo(false); },
     redo() { lastFocused?.undo(true); },
-    deleteSelected() {
-      const sel = Blockly.getSelected() as any;
-      if (sel && typeof sel.checkAndDelete === 'function') sel.checkAndDelete();
-      else if (sel && typeof sel.dispose === 'function') sel.dispose();
-    },
     loadExample() {
       const ws = wsRef.current;
       if (!ws) return;
