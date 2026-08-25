@@ -23,8 +23,8 @@ Every strategy lives in two fixed zones — you never create them:
 
 | Zone | What it does |
 |------|--------------|
-| **SETUP** | Runs once, before trading starts. Initialize your variables here. |
-| **ON EVERY BAR** | The heart of the strategy. Runs once for every market bar. |
+| **SETUP** | Runs once, before trading starts. Define variables and **functions** here (like module-level `def`s). |
+| **ON EVERY BAR** | The entry point — the `main` loop. Runs once for every market bar. |
 
 ---
 
@@ -42,14 +42,18 @@ Your pieces:
 - **Indicators** — `EMA`, `RSI`, `MACD`, `Bollinger Bands`, `ATR`, `VWAP`, `ROC`.
 - **Portfolio** — `Cash`, `Position`, `Average Entry Price`, `Portfolio Value`.
 - **Trade** — `BUY` (as % of cash, USDT, or BTC), `SELL`, and `Sell All`.
-- **My Blocks** — create your own reusable function with parameters and a return value.
+- **My Blocks** — define a function in SETUP (name + parameters + a return value), then call it anywhere.
 
-The simplest useful bot is three blocks:
+The starter strategy is a **Martingale** dip-buyer:
 
 ```
-IF  Close  >  average of Close over 20 bars
-    BUY  50% of cash
+SETUP        set bet to 2
+ON EVERY BAR if flat and Close dips → BUY bet% of cash
+             if up 5%  → Sell All, reset bet
+             if down 5% → Sell All, double bet
 ```
+
+Buy the dip with a base bet, take profit at +5%, and double the bet after a −5% stop loss.
 
 ### 2 · Test My Strategy
 Hit **Test My Strategy**. STRATCH validates your blocks (it will point at any block that's broken) and reads your strategy back to you in plain English — so you know the machine understood exactly what you meant.
@@ -80,7 +84,7 @@ npm install
 npm run dev
 ```
 
-Open the printed URL (usually http://localhost:5173). A starter strategy is loaded on first run, and your work autosaves in the browser.
+Open the printed URL (usually http://localhost:5173). A Martingale starter strategy is loaded on first run, and your work autosaves in the browser.
 
 ```bash
 npm run build       # production build into dist/
@@ -100,4 +104,4 @@ Under the hood it's React + TypeScript + [Blockly](https://github.com/google/blo
 
 ## License
 
-STRATCH is licensed under **AGPL-3.0** (`LICENSE`). Blockly is Apache-2.0 and is used unmodified — see `THIRD_PARTY_NOTICES.md`.
+STRATCH is licensed under **AGPL-3.0** (`LICENSE`). Blockly is Apache-2.0 and is used unmodified.

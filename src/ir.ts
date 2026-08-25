@@ -263,6 +263,20 @@ export const BLOCKS: Record<string, BlockDef> = {
     type: 'callFn', category: 'myblocks', kind: 'value', vt: 'number',
     parts: [{ k: 'field', name: 'fn', f: 'function' }],
   },
+  // function definition — lives in SETUP (like a module-level `def`)
+  defineFn: {
+    type: 'defineFn', category: 'myblocks', kind: 'statement',
+    parts: [
+      { k: 'label', text: 'define' },
+      { k: 'field', name: 'name', f: 'text' },
+      { k: 'label', text: '(' },
+      { k: 'field', name: 'params', f: 'text' },
+      { k: 'label', text: ')' },
+      { k: 'label', text: 'return' },
+      { k: 'value', name: 'return', vt: 'number' },
+    ],
+    defaults: { name: 'myBlock', params: '' },
+  },
   // parameter reference — only valid inside a My Block's return expression
   param: {
     type: 'param', category: 'myblocks', kind: 'value', vt: 'number',

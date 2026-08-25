@@ -3,7 +3,6 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import type { VarDef } from '../ir';
-import type { EditableFunction } from '../blockly/generator';
 import type { BacktestResult, BacktestConfig, Attribution } from '../engine/run';
 import type { Issue } from '../engine/tools';
 import { PriceChart, EquityChart } from './Charts';
@@ -18,32 +17,23 @@ const sign = (v: number) => (v >= 0 ? 'pos' : 'neg');
 
 export function BuildPanel(props: {
   vars: VarDef[];
-  functions: EditableFunction[];
   blockCount: number;
   onMakeVar: () => void;
-  onMakeFn: () => void;
   onRenameVar: (id: string, name: string) => void;
   onDeleteVar: (id: string) => void;
-  onEditFn: (id: string) => void;
-  onDeleteFn: (id: string) => void;
   onLoadJson: (file: File) => void;
 }) {
   return (
     <div>
       <div className="card">
         <div className="card__title">Strategy</div>
-        <div className="grid2">
-          <div className="metric">
-            <div className="metric__label">Blocks</div>
-            <div className="metric__value">{props.blockCount}</div>
-          </div>
-          <div className="metric">
-            <div className="metric__label">My Blocks</div>
-            <div className="metric__value">{props.functions.length}</div>
-          </div>
+        <div className="metric">
+          <div className="metric__label">Blocks</div>
+          <div className="metric__value">{props.blockCount}</div>
         </div>
         <p className="hint" style={{ marginTop: 10 }}>
-          Drag blocks from the toolbox into SETUP (init) and ON EVERY BAR (the strategy loop).
+          SETUP defines variables and <span className="up">functions</span>; ON EVERY BAR is the main loop.
+          Define a function with the <span className="up">define</span> block (My Blocks → Make a Block).
         </p>
       </div>
 
@@ -71,30 +61,6 @@ export function BuildPanel(props: {
         ))}
         <button className="palette__make" onClick={props.onMakeVar}>
           + Make a Variable
-        </button>
-      </div>
-
-      <div className="card">
-        <div className="card__title">My Blocks</div>
-        {props.functions.length === 0 && <div className="empty-note">No custom functions yet.</div>}
-        {props.functions.map((f) => (
-          <div key={f.id} className="var-row">
-            <span className="mono">
-              <span className="up">{f.name}</span>
-              <span className="muted">({f.params.join(', ')})</span>
-            </span>
-            <span className="var-actions">
-              <button className="mini" onClick={() => props.onEditFn(f.id)}>
-                <Icon name="pencil" size={12} />
-              </button>
-              <button className="mini danger" onClick={() => props.onDeleteFn(f.id)}>
-                <Icon name="x" size={12} />
-              </button>
-            </span>
-          </div>
-        ))}
-        <button className="palette__make" onClick={props.onMakeFn}>
-          + Make a Block
         </button>
       </div>
 

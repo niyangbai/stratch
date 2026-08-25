@@ -158,6 +158,12 @@ export function explainStatement(strategy: Strategy, id: string): string[] {
 /** Render a full strategy as a readable English description. */
 export function explainStrategy(strategy: Strategy): string {
   const parts: string[] = [];
+  if (strategy.functions.length) {
+    parts.push(
+      'Defined functions:',
+      ...strategy.functions.map((f) => `  ${f.name}(${f.params.join(', ')}) = ${f.returnBlockId ? explainValue(strategy, f.returnBlockId) : '…'}`),
+    );
+  }
   if (strategy.setup.length) {
     const lines = strategy.setup.flatMap((id) => explainStatement(strategy, id));
     parts.push('Before the strategy starts (SETUP):', ...lines.map((s) => '  ' + s));

@@ -155,7 +155,7 @@ export function validate(strategy: Strategy): Issue[] {
   strategy.onBar.forEach(visitStatement);
   strategy.functions.forEach((f) => {
     if (!f.returnBlockId) {
-      issues.push({ severity: 'error', blockId: null, message: `Function “${f.name}” is missing a return value.` });
+      issues.push({ severity: 'error', blockId: f.id, message: `Function “${f.name}” is missing a return value.` });
     } else {
       visitValueBlock(f.returnBlockId);
     }

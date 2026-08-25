@@ -1,18 +1,16 @@
 // ─────────────────────────────────────────────────────────────────────────────
-// Blockly serialization JSON  ->  Stratch Strategy IR.
+// Blockly serialization JSON -> Stratch Strategy IR.
 // The Blockly workspace is only an editing surface; the IR stays the single
 // source of truth for validate / run / explain / export.
 // Block ids are preserved from Blockly so error highlighting can map back.
+//
+// Functions (My Blocks) are defined as `defineFn` blocks inside SETUP, the
+// same way module-level `def` statements sit above `main` in a program.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { BLOCKS, newId, type Strategy, type Block, type VarDef, type FunctionDef, type FieldValue } from '../ir';
 
-export interface EditableFunction {
-  id: string;
-  name: string;
-  params: string[];
-  returnJson: any | null;
-}
+type FnRef = { id: string; params: string[] };
 
 function defaultFields(type: string): Record<string, FieldValue> {
   const def = BLOCKS[type];
@@ -32,7 +30,7 @@ function defaultFields(type: string): Record<string, FieldValue> {
 
 type Json = any;
 
-function convertBlock(json: Json, blocks: Record<string, Block>, functions: EditableFunction[]): string {
+function convertBlock(json: Json, blocks: Record<string, Block>, functions: FnRef[]): string {
   const type: string = json.type;
   const def = BLOCKS[type];
   const id: string = json.id ?? newId();
@@ -74,7 +72,7 @@ function convertBlock(json: Json, blocks: Record<string, Block>, functions: Edit
   return id;
 }
 
-function convertStack(json: Json, blocks: Record<string, Block>, functions: EditableFunction[]): string[] {
+function convertStack(json: Json, blocks: Record<string, Block>, functions: FnRef[]): string[] {
   const ids: string[] = [];
   let cur: Json = json;
   while (cur) {
@@ -84,34 +82,47 @@ function convertStack(json: Json, blocks: Record<string, Block>, functions: Edit
   return ids;
 }
 
+function splitParams(raw: string): string[] {
+  return String(raw ?? '').split(',').map((s) => s.trim()).filter(Boolean);
+}
+
 /** Build the full engine-facing Strategy IR from the editor state. */
-export function buildStrategy(
-  vars: VarDef[],
-  functions: EditableFunction[],
-  setupJson: Json | null,
-  onBarJson: Json | null,
-): Strategy {
+export function buildStrategy(vars: VarDef[], setupJson: Json | null, onBarJson: Json | null): Strategy {
   const blocks: Record<string, Block> = {};
 
-  const setup = setupJson?.blocks?.blocks
-    ? setupJson.blocks.blocks.flatMap((b: Json) => convertStack(b, blocks, functions))
-    : [];
+  // Pass 1: pre-scan SETUP for defineFn blocks to know the callable functions
+  // (name + params live directly in the serialized fields).
+  const functions: FunctionDef[] = [];
+  const scan = (json: Json) => {
+    let cur: Json = json;
+    while (cur) {
+      if (cur.type === 'defineFn') {
+        const name = String(cur.fields?.name ?? '').trim() || 'myBlock';
+        functions.push({ id: cur.id ?? newId(), name, params: splitParams(cur.fields?.params), returnBlockId: null });
+      }
+      cur = cur?.next?.block ?? null;
+    }
+  };
+  (setupJson?.blocks?.blocks ?? []).forEach(scan);
+
+  // Pass 2: convert everything (functions list now known, for callFn args).
+  const setup: string[] = [];
+  for (const topJson of setupJson?.blocks?.blocks ?? []) {
+    const ids = convertStack(topJson, blocks, functions);
+    for (const id of ids) {
+      const b = blocks[id];
+      if (b.type === 'defineFn') {
+        const fn = functions.find((f) => f.id === id);
+        if (fn) fn.returnBlockId = b.values?.return ?? null;
+      } else {
+        setup.push(id);
+      }
+    }
+  }
 
   const onBar = onBarJson?.blocks?.blocks
     ? onBarJson.blocks.blocks.flatMap((b: Json) => convertStack(b, blocks, functions))
     : [];
 
-  const resolved: FunctionDef[] = functions.map((f) => ({
-    id: f.id,
-    name: f.name,
-    params: f.params,
-    returnBlockId: f.returnJson ? convertBlock(f.returnJson, blocks, functions) : null,
-  }));
-
-  return { blocks, vars, functions: resolved, setup, onBar };
-}
-
-/** Convenience: default return expression for a freshly created function. */
-export function defaultReturnJson(): Json {
-  return { type: 'number', fields: { n: 0 } };
+  return { blocks, vars, functions, setup, onBar };
 }

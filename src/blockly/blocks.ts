@@ -209,6 +209,7 @@ const SHADOWS: Record<string, any> = {
   priceAgo: { inputs: { bars: { shadow: { type: 'number', fields: { n: 5 } } } } },
   window: { inputs: { n: { shadow: { type: 'number', fields: { n: 20 } } } } },
   indicator: { inputs: { period: { shadow: { type: 'number', fields: { n: 14 } } } } },
+  defineFn: { inputs: { return: { shadow: { type: 'number', fields: { n: 0 } } } } },
 };
 
 function blockItem(type: string): any {
@@ -239,7 +240,11 @@ export function buildToolbox(): any {
     ],
   });
   // My Blocks
-  const fnContents: any[] = [{ kind: 'button', text: 'Make a Block', callbackkey: 'MAKE_FN' }];
+  const fnContents: any[] = [
+    { kind: 'button', text: 'Make a Block', callbackkey: 'MAKE_FN' },
+    { kind: 'block', type: 'defineFn' },
+    { kind: 'block', type: 'param' },
+  ];
   for (const f of fnProvider()) {
     fnContents.push({ kind: 'block', type: 'callFn', fields: { fn: f.id } });
   }
@@ -287,43 +292,42 @@ export function makeTheme(): Blockly.Theme {
   } as any);
 }
 
-// ── function editor toolbox (value-only, with parameter references) ──────────
+// ── starter example — a Martingale dip-buyer ─────────────────────────────────
+// Long-only spot: buy the dip with a base bet, take profit at +5%, and double
+// the bet after a -5% stop loss (classic Martingale).
 
-export function buildFnToolbox(params: string[]): any {
-  const m = CATEGORY_META;
-  const cat = (name: string, colour: string, types: string[]) => ({
-    kind: 'category',
-    name,
-    colour,
-    contents: types.map((t) => blockItem(t)),
-  });
-  return {
-    kind: 'categoryToolbox',
-    contents: [
-      cat('Math', m.math.color, ['number', 'arith', 'minmax', 'abs', 'round']),
-      cat('Market', m.market.color, ['price', 'priceAgo', 'window', 'indicator']),
-      cat('Portfolio', m.portfolio.color, ['portfolio']),
-      cat('Variables', m.variables.color, ['getVar']),
-      {
-        kind: 'category',
-        name: 'Parameters',
-        colour: m.myblocks.color,
-        contents: params.map((p) => ({ kind: 'block', type: 'param', fields: { name: p } })),
-      },
-      {
-        kind: 'category',
-        name: 'My Blocks',
-        colour: m.myblocks.color,
-        contents: fnProvider().map((f) => ({ kind: 'block', type: 'callFn', fields: { fn: f.id } })),
-      },
-    ],
-  };
-}
-
-// ── starter example (the classic 20-bar moving-average cross) ────────────────
+const num = (n: number) => ({ type: 'number', fields: { n } });
+const price = (src = 'Close') => ({ type: 'price', fields: { src } });
+const portfolio = (item: string) => ({ type: 'portfolio', fields: { item } });
+const getBet = () => ({ type: 'getVar', fields: { var: 'bet' } });
+const avgEntryTimes = (k: number) => ({
+  type: 'arith',
+  fields: { op: '×' },
+  inputs: { a: { block: portfolio('Average Entry Price') }, b: { block: num(k) } },
+});
+const closeVs = (op: string, rhs: any) => ({
+  type: 'compare',
+  fields: { op },
+  inputs: { a: { block: price() }, b: { block: rhs } },
+});
+const priceAgo1 = () => ({
+  type: 'priceAgo',
+  fields: { src: 'Close' },
+  inputs: { bars: { shadow: num(1) } },
+});
 
 export function starterSetupJson(): any {
-  return { blocks: { blocks: [] } };
+  return {
+    blocks: {
+      blocks: [
+        {
+          type: 'setVar',
+          fields: { var: 'bet' },
+          inputs: { value: { block: num(2) } },
+        },
+      ],
+    },
+  };
 }
 
 export function starterOnBarJson(): any {
@@ -331,29 +335,78 @@ export function starterOnBarJson(): any {
     blocks: {
       blocks: [
         {
-          type: 'if',
+          type: 'ifelse',
           inputs: {
             condition: {
               block: {
                 type: 'compare',
-                fields: { op: '>' },
+                fields: { op: '=' },
+                inputs: { a: { block: portfolio('Position') }, b: { block: num(0) } },
+              },
+            },
+            do: {
+              // flat -> buy the dip
+              block: {
+                type: 'if',
                 inputs: {
-                  a: { block: { type: 'price', fields: { src: 'Close' } } },
-                  b: {
+                  condition: { block: closeVs('<', priceAgo1()) },
+                  do: {
                     block: {
-                      type: 'window',
-                      fields: { fn: 'average', src: 'Close' },
-                      inputs: { n: { shadow: { type: 'number', fields: { n: 20 } } } },
+                      type: 'buy',
+                      fields: { unit: '% of cash' },
+                      inputs: { amount: { block: getBet() } },
                     },
                   },
                 },
               },
             },
-            do: {
+            else: {
+              // in position -> take profit (+5%) / stop loss (-5%)
               block: {
-                type: 'buy',
-                fields: { unit: '% of cash' },
-                inputs: { amount: { block: { type: 'number', fields: { n: 50 } } } },
+                type: 'if',
+                inputs: {
+                  condition: { block: closeVs('>', avgEntryTimes(1.05)) },
+                  do: {
+                    block: {
+                      type: 'sellAll',
+                      next: {
+                        block: {
+                          type: 'setVar',
+                          fields: { var: 'bet' },
+                          inputs: { value: { block: num(2) } },
+                        },
+                      },
+                    },
+                  },
+                },
+                next: {
+                  block: {
+                    type: 'if',
+                    inputs: {
+                      condition: { block: closeVs('<', avgEntryTimes(0.95)) },
+                      do: {
+                        block: {
+                          type: 'sellAll',
+                          next: {
+                            block: {
+                              type: 'setVar',
+                              fields: { var: 'bet' },
+                              inputs: {
+                                value: {
+                                  block: {
+                                    type: 'arith',
+                                    fields: { op: '×' },
+                                    inputs: { a: { block: getBet() }, b: { block: num(2) } },
+                                  },
+                                },
+                              },
+                            },
+                          },
+                        },
+                      },
+                    },
+                  },
+                },
               },
             },
           },

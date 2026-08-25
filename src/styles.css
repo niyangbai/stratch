@@ -633,6 +633,17 @@ body {
   background-color: #080d16 !important;
 }
 
+/* ── page transition ─────────────────────────────────────────────────────── */
+
+@keyframes pageIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.page-transition {
+  animation: pageIn 0.22s ease-out;
+  display: flex; flex-direction: column; flex: 1; min-height: 0;
+}
+
 /* ── step indicator ──────────────────────────────────────────────────────── */
 
 .steps { display: flex; align-items: center; gap: 6px; }

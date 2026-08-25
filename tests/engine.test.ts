@@ -66,7 +66,7 @@ console.log('\n[1] moving-average cross');
       ],
     },
   };
-  const strategy = buildStrategy([], [], { blocks: { blocks: [] } }, onBar);
+  const strategy = buildStrategy([], { blocks: { blocks: [] } }, onBar);
   check('builds the expected blocks (incl. shadow number)', Object.keys(strategy.blocks).length === 7, `got ${Object.keys(strategy.blocks).length}`);
   check('validate passes', validate(strategy).length === 0, JSON.stringify(validate(strategy)));
 
@@ -82,39 +82,47 @@ console.log('\n[1] moving-average cross');
   check('js export contains ctx.window', exportJs(strategy).includes('ctx.window'));
 }
 
-// 2) My Block: Momentum(period) = Close / Close[period] ago - 1
-console.log('\n[2] My Block with a parameter');
+// 2) My Block defined in SETUP: Momentum(period) = Close / Close[period] ago - 1
+console.log('\n[2] My Block defined in SETUP');
 {
-  const functions = [
-    {
-      id: 'f1',
-      name: 'Momentum',
-      params: ['period'],
-      returnJson: {
-        type: 'arith',
-        fields: { op: '−' },
-        inputs: {
-          a: {
-            block: {
-              type: 'arith',
-              fields: { op: '÷' },
-              inputs: {
-                a: { block: { type: 'price', fields: { src: 'Close' } } },
-                b: {
-                  block: {
-                    type: 'priceAgo',
-                    fields: { src: 'Close' },
-                    inputs: { bars: { block: { type: 'param', fields: { name: 'period' } } } },
+  const setup = {
+    blocks: {
+      blocks: [
+        {
+          type: 'defineFn',
+          id: 'f1',
+          fields: { name: 'Momentum', params: 'period' },
+          inputs: {
+            return: {
+              block: {
+                type: 'arith',
+                fields: { op: '−' },
+                inputs: {
+                  a: {
+                    block: {
+                      type: 'arith',
+                      fields: { op: '÷' },
+                      inputs: {
+                        a: { block: { type: 'price', fields: { src: 'Close' } } },
+                        b: {
+                          block: {
+                            type: 'priceAgo',
+                            fields: { src: 'Close' },
+                            inputs: { bars: { block: { type: 'param', fields: { name: 'period' } } } },
+                          },
+                        },
+                      },
+                    },
                   },
+                  b: { block: { type: 'number', fields: { n: 1 } } },
                 },
               },
             },
           },
-          b: { block: { type: 'number', fields: { n: 1 } } },
         },
-      },
+      ],
     },
-  ];
+  };
   const onBar = {
     blocks: {
       blocks: [
@@ -143,7 +151,7 @@ console.log('\n[2] My Block with a parameter');
       ],
     },
   };
-  const strategy = buildStrategy([], functions as any, { blocks: { blocks: [] } }, onBar);
+  const strategy = buildStrategy([], setup, onBar);
   const issues = validate(strategy);
   check('validate passes with a function + param', issues.length === 0, JSON.stringify(issues));
 
@@ -164,7 +172,7 @@ console.log('\n[3] validation');
       blocks: [{ type: 'buy', fields: { unit: '% of cash' } }],
     },
   };
-  const strategy = buildStrategy([], [], { blocks: { blocks: [] } }, onBar);
+  const strategy = buildStrategy([], { blocks: { blocks: [] } }, onBar);
   const issues = validate(strategy);
   check('flags missing amount', issues.some((i) => i.severity === 'error' && i.message.includes('value')));
 }

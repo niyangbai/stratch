@@ -5,7 +5,7 @@
 
 import { useMemo, useRef, useState } from 'react';
 import { StrategyEditor, type StrategyEditorHandle } from './blockly/StrategyEditor';
-import { useEditorState, addVar, renameVar, deleteVar, addFunction, deleteFunction, importState, exportStateJson } from './store';
+import { useEditorState, addVar, renameVar, deleteVar, importState, exportStateJson } from './store';
 import type { BacktestConfig, BacktestResult, Attribution } from './engine/run';
 import { validate, exportJs, exportNatural, type Issue } from './engine/tools';
 import { explainStrategy } from './engine/explain';
@@ -14,11 +14,11 @@ import { StepIndicator } from './ui/StepIndicator';
 import { Icon } from './ui/Icon';
 import { Landing } from './ui/Landing';
 import { BuildPanel, TestPanel, BacktestPanel, ResultsPanel, ExportPanel } from './ui/panels';
-import { MakeVarModal, MakeFnModal, FunctionEditorModal } from './ui/Modals';
+import { MakeVarModal } from './ui/Modals';
 
 type Page = 'landing' | 'build' | 'backtest';
 type BuildTab = 'build' | 'test' | 'export';
-type ModalState = { type: 'var' } | { type: 'makefn' } | { type: 'editfn'; fnId: string } | null;
+type ModalState = { type: 'var' } | null;
 
 const DEFAULT_CONFIG: BacktestConfig = {
   pair: 'BTC/USDT',
@@ -155,8 +155,6 @@ export default function App() {
     worker.postMessage({ strategy, config });
   }
 
-  const editFn = modal?.type === 'editfn' ? state.functions.find((f) => f.id === modal.fnId) : null;
-
   if (page === 'landing') {
     return <Landing onStart={() => setPage('build')} />;
   }
@@ -174,13 +172,12 @@ export default function App() {
   const modals = (
     <>
       {modal?.type === 'var' && <MakeVarModal onClose={() => setModal(null)} onConfirm={(n) => addVar(n)} />}
-      {modal?.type === 'makefn' && <MakeFnModal onClose={() => setModal(null)} onConfirm={(n, p) => addFunction(n, p)} />}
-      {modal?.type === 'editfn' && editFn && <FunctionEditorModal fn={editFn} onClose={() => setModal(null)} />}
     </>
   );
 
   return (
     <div className="app">
+      <div className="page-transition" key={page}>
       {page === 'build' ? (
         <>
           <TopBar>
@@ -195,7 +192,7 @@ export default function App() {
                 <button className="iconbtn" title="Redo (Ctrl+Shift+Z)" onClick={() => editorRef.current?.redo()}><Icon name="redo" size={15} /></button>
                 <span className="divider" />
                 <button className="iconbtn" title="Load example" onClick={() => editorRef.current?.loadExample()}><Icon name="zap" size={15} /></button>
-                <button className="iconbtn" title="Clear all" onClick={() => editorRef.current?.clearAll()}><Icon name="trash" size={15} /></button>
+                <button className="iconbtn" title="Delete selected block" onClick={() => editorRef.current?.deleteSelected()}><Icon name="trash" size={15} /></button>
                 <span className="spacer" />
                 <span className="mono muted" style={{ fontSize: 10 }}>drag from the toolbox · right-click a block for menu</span>
               </div>
@@ -204,7 +201,6 @@ export default function App() {
                   <StrategyEditor
                     ref={editorRef}
                     onMakeVar={() => setModal({ type: 'var' })}
-                    onMakeFn={() => setModal({ type: 'makefn' })}
                   />
                 </div>
               </div>
@@ -222,14 +218,10 @@ export default function App() {
                 {buildTab === 'build' && (
                   <BuildPanel
                     vars={state.vars}
-                    functions={state.functions}
                     blockCount={blockCount}
                     onMakeVar={() => setModal({ type: 'var' })}
-                    onMakeFn={() => setModal({ type: 'makefn' })}
                     onRenameVar={renameVar}
                     onDeleteVar={deleteVar}
-                    onEditFn={(id) => setModal({ type: 'editfn', fnId: id })}
-                    onDeleteFn={deleteFunction}
                     onLoadJson={handleImportFile}
                   />
                 )}
@@ -268,6 +260,7 @@ export default function App() {
           {statusBar}
         </>
       )}
+      </div>
 
       {modals}
     </div>

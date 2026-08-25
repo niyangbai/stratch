@@ -21,7 +21,7 @@ const TICKS: [string, number, number][] = [
 
 export function Landing({ onStart }: { onStart: () => void }) {
   return (
-    <div className="landing">
+    <div className="landing page-transition">
       <div className="landing__nav">
         <div className="brand">
           <div className="brand__logo">S</div>
