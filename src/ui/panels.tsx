@@ -199,19 +199,38 @@ export function BacktestPanel(props: {
 // ── Results ──────────────────────────────────────────────────────────────────
 
 function ScoreRing({ score }: { score: number }) {
-  const r = 30;
+  const cx = 37, cy = 37, r = 25;
   const circ = 2 * Math.PI * r;
   const off = circ * (1 - score / 100);
+  const color = score >= 70 ? 'var(--up)' : score >= 45 ? 'var(--cyan)' : 'var(--amber)';
+  // gauge ticks around the ring
+  const ticks = [];
+  for (let i = 0; i < 36; i++) {
+    const a = (i / 36) * Math.PI * 2 - Math.PI / 2;
+    const major = i % 9 === 0;
+    const len = major ? 5 : 2.5;
+    const r1 = r + 5, r2 = r + 5 + len;
+    ticks.push(
+      <line
+        key={i}
+        x1={cx + Math.cos(a) * r1} y1={cy + Math.sin(a) * r1}
+        x2={cx + Math.cos(a) * r2} y2={cy + Math.sin(a) * r2}
+        stroke={major ? 'rgba(148,186,231,0.5)' : 'rgba(148,186,231,0.22)'}
+        strokeWidth={major ? 1.6 : 1}
+      />,
+    );
+  }
   return (
     <div className="score__ring">
-      <svg width={74} height={74} viewBox="0 0 74 74">
-        <circle cx={37} cy={37} r={r} fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth={6} />
+      <svg width={84} height={84} viewBox="0 0 74 74">
+        {ticks}
+        <circle cx={cx} cy={cy} r={r} fill="none" stroke="rgba(255,255,255,0.07)" strokeWidth={5} />
         <circle
-          cx={37} cy={37} r={r} fill="none"
-          stroke={score >= 70 ? '#00e6a8' : score >= 45 ? '#22d3ee' : '#fbbf24'}
-          strokeWidth={6} strokeLinecap="round"
+          cx={cx} cy={cy} r={r} fill="none"
+          stroke={color} strokeWidth={5} strokeLinecap="round"
           strokeDasharray={circ} strokeDashoffset={off}
-          transform="rotate(-90 37 37)"
+          transform={`rotate(-90 ${cx} ${cy})`}
+          style={{ filter: `drop-shadow(0 0 4px ${color})` }}
         />
       </svg>
       <div style={{ position: 'absolute', textAlign: 'center' }}>

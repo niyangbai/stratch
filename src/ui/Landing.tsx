@@ -37,14 +37,14 @@ export function Landing({ onStart }: { onStart: () => void }) {
       </div>
 
       <div className="landing__hero">
-        <div className="landing__eyebrow">SCRATCH-STYLE CRYPTO TRADING GAME</div>
+        <div className="landing__eyebrow">BUILD A TRADING BOT · BLOCK BY BLOCK</div>
         <h1 className="landing__title">
           Build a trading bot<br />
           <span className="accent">with blocks.</span>
         </h1>
         <p className="landing__sub">
-          You're the quant. Snap blocks together to write a strategy, run it against real
-          crypto history, and chase a 100 score. No code, no spreadsheets — just logic.
+          You're the quant. Snap blocks together, run the strategy on real crypto history,
+          and chase a 100 score. No code — just logic you can read.
         </p>
         <div className="landing__cta">
           <button className="btn btn--primary btn--big" onClick={onStart}>Start building <Icon name="arrowRight" size={16} /></button>
@@ -63,6 +63,7 @@ export function Landing({ onStart }: { onStart: () => void }) {
       </div>
 
       <div className="landing__ticker">
+        <span className="landing__tape-label"><span className="pulse" /> LIVE</span>
         <div className="ticker">
           <div className="ticker__track">
             {[...TICKS, ...TICKS].map((t, i) => (
