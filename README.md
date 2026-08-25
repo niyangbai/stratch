@@ -1,0 +1,92 @@
+# STRATCH
+
+**Build a crypto trading bot with blocks — no code, no forms.**
+
+STRATCH is a game where you are the quant. Instead of filling in a strategy form, you snap blocks together like Scratch to write a trading strategy, then run it against real crypto history and see how it scores.
+
+> The app is English. Design notes are in [`dev_doc.md`](./dev_doc.md) (Chinese).
+
+---
+
+## The loop
+
+```
+Build → Test My Strategy → Backtest → Score → Improve → Export
+```
+
+Every strategy lives in two fixed zones — you never create them:
+
+| Zone | What it does |
+|------|--------------|
+| **SETUP** | Runs once, before trading starts. Initialize your variables here. |
+| **ON EVERY BAR** | The heart of the strategy. Runs once for every market bar. |
+
+---
+
+## How to play
+
+### 1 · Build
+Drag blocks from the toolbox on the left into the two zones. Blocks snap together and nest, just like Scratch.
+
+Your pieces:
+
+- **Logic** — `if` / `if / else`, `AND`, `OR`, `NOT`, and comparisons (`>`, `<`, `=`, `>=`, `<=`, `≠`).
+- **Math** — `+`, `−`, `×`, `÷`, `min`, `max`, `abs`, `round`.
+- **Variables** — make a variable, then `set` it, `change` it, or read it.
+- **Market** — price (Open / High / Low / Close / Volume), price N bars ago, and window calcs (`average`, `sum`, `highest`, `lowest`).
+- **Indicators** — `EMA`, `RSI`, `MACD`, `Bollinger Bands`, `ATR`, `VWAP`, `ROC`.
+- **Portfolio** — `Cash`, `Position`, `Average Entry Price`, `Portfolio Value`.
+- **Trade** — `BUY` (as % of cash, USDT, or BTC), `SELL`, and `Sell All`.
+- **My Blocks** — create your own reusable function with parameters and a return value.
+
+The simplest useful bot is three blocks:
+
+```
+IF  Close  >  average of Close over 20 bars
+    BUY  50% of cash
+```
+
+### 2 · Test My Strategy
+Hit **⚡ Test**. STRATCH validates your blocks (it will point at any block that's broken) and reads your strategy back to you in plain English — so you know the machine understood exactly what you meant.
+
+### 3 · Backtest
+Pick the environment — crypto pair, timeframe, date range, starting cash, fee and slippage — then **▶ Run**. The same strategy can be tried instantly on BTC, ETH or SOL and on any timeframe.
+
+### 4 · Score
+You get a **0–100 strategy score** (not just raw return — it weighs performance, benchmark, risk, consistency, robustness and complexity), plus:
+
+- total return vs. buy & hold, max drawdown, Sharpe, win rate, profit factor
+- a price chart with your buy/sell markers
+- an equity curve
+- the full trade history
+
+### 5 · Improve
+Click any trade to see **why it happened** — the exact condition and the numbers at that bar. Then read **What mattered?** to see which conditions actually moved your result. Tighten your blocks and re-run.
+
+### 6 · Export
+Export your strategy as **plain English** or as **readable JavaScript** — STRATCH shows you that your blocks *are* real programming logic.
+
+---
+
+## Run it
+
+```bash
+npm install
+npm run dev
+```
+
+Open the printed URL (usually http://localhost:5173). A starter strategy is loaded on first run, and your work autosaves in the browser.
+
+```bash
+npm run build       # production build into dist/
+npm run preview     # serve the build
+npm run test:engine # headless tests for the strategy engine
+```
+
+---
+
+## Scope
+
+First version: crypto **spot**, **long-only**, **single asset**, bar-based, historical backtest, pure frontend. No login, no backend, no live trading. Data comes from a deterministic synthetic market (reproducible by seed) or live Binance klines — all computed in your browser, in a Web Worker so the UI stays responsive.
+
+Under the hood it's React + TypeScript + [Blockly](https://github.com/google/blockly) (the project Scratch Blocks is forked from) with a dark crypto-terminal theme, and a Web Worker runs the backtest. The block editor compiles into a strategy model that is validated, run, explained, scored and exported from one source.
