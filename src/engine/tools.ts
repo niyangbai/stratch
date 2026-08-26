@@ -387,6 +387,25 @@ ${RUNTIME}`;
 
 // ── natural-language export ──────────────────────────────────────────────────
 
+// Static glossary prepended to the natural-language export, so the generated
+// description reads clearly even to readers unfamiliar with trading terms.
+const GLOSSARY = `Definitions
+-----------
+bar — one step of market data (e.g. one day on a daily timeframe).
+opening price — price at the start of a bar.
+closing price — price at the end of a bar.
+high / low — highest / lowest price within a bar.
+volume — amount of the asset traded during a bar.
+cash — money not currently invested.
+position — amount of the asset currently held.
+average entry price — average price paid for the current position.
+portfolio value — cash plus the value of the current position.
+SETUP — runs once before trading starts.
+ON EVERY BAR — the main loop; runs once per bar.
+EMA, RSI, MACD, Bollinger, ATR, VWAP, ROC — technical indicators computed from past bars.
+
+`;
+
 export function exportNatural(strategy: Strategy): string {
-  return explainStrategy(strategy);
+  return GLOSSARY + explainStrategy(strategy);
 }
