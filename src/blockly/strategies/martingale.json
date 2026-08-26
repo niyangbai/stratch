@@ -1,0 +1,294 @@
+{
+  "vars": [
+    {
+      "id": "bet",
+      "name": "bet"
+    }
+  ],
+  "setupJson": {
+    "blocks": {
+      "blocks": [
+        {
+          "type": "setVar",
+          "fields": {
+            "var": "bet"
+          },
+          "inputs": {
+            "value": {
+              "block": {
+                "type": "number",
+                "fields": {
+                  "n": 2
+                }
+              }
+            }
+          }
+        }
+      ]
+    }
+  },
+  "onBarJson": {
+    "blocks": {
+      "blocks": [
+        {
+          "type": "ifelse",
+          "inputs": {
+            "condition": {
+              "block": {
+                "type": "compare",
+                "fields": {
+                  "op": "="
+                },
+                "inputs": {
+                  "a": {
+                    "block": {
+                      "type": "portfolio",
+                      "fields": {
+                        "item": "Position"
+                      }
+                    }
+                  },
+                  "b": {
+                    "block": {
+                      "type": "number",
+                      "fields": {
+                        "n": 0
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "do": {
+              "block": {
+                "type": "if",
+                "inputs": {
+                  "condition": {
+                    "block": {
+                      "type": "compare",
+                      "fields": {
+                        "op": "<"
+                      },
+                      "inputs": {
+                        "a": {
+                          "block": {
+                            "type": "price",
+                            "fields": {
+                              "src": "Close"
+                            }
+                          }
+                        },
+                        "b": {
+                          "block": {
+                            "type": "priceAgo",
+                            "fields": {
+                              "src": "Close"
+                            },
+                            "inputs": {
+                              "bars": {
+                                "shadow": {
+                                  "type": "number",
+                                  "fields": {
+                                    "n": 1
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "do": {
+                    "block": {
+                      "type": "buy",
+                      "fields": {
+                        "unit": "% of cash"
+                      },
+                      "inputs": {
+                        "amount": {
+                          "block": {
+                            "type": "getVar",
+                            "fields": {
+                              "var": "bet"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "else": {
+              "block": {
+                "type": "if",
+                "inputs": {
+                  "condition": {
+                    "block": {
+                      "type": "compare",
+                      "fields": {
+                        "op": ">"
+                      },
+                      "inputs": {
+                        "a": {
+                          "block": {
+                            "type": "price",
+                            "fields": {
+                              "src": "Close"
+                            }
+                          }
+                        },
+                        "b": {
+                          "block": {
+                            "type": "arith",
+                            "fields": {
+                              "op": "×"
+                            },
+                            "inputs": {
+                              "a": {
+                                "block": {
+                                  "type": "portfolio",
+                                  "fields": {
+                                    "item": "Average Entry Price"
+                                  }
+                                }
+                              },
+                              "b": {
+                                "block": {
+                                  "type": "number",
+                                  "fields": {
+                                    "n": 1.05
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "do": {
+                    "block": {
+                      "type": "sellAll",
+                      "next": {
+                        "block": {
+                          "type": "setVar",
+                          "fields": {
+                            "var": "bet"
+                          },
+                          "inputs": {
+                            "value": {
+                              "block": {
+                                "type": "number",
+                                "fields": {
+                                  "n": 2
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "next": {
+                  "block": {
+                    "type": "if",
+                    "inputs": {
+                      "condition": {
+                        "block": {
+                          "type": "compare",
+                          "fields": {
+                            "op": "<"
+                          },
+                          "inputs": {
+                            "a": {
+                              "block": {
+                                "type": "price",
+                                "fields": {
+                                  "src": "Close"
+                                }
+                              }
+                            },
+                            "b": {
+                              "block": {
+                                "type": "arith",
+                                "fields": {
+                                  "op": "×"
+                                },
+                                "inputs": {
+                                  "a": {
+                                    "block": {
+                                      "type": "portfolio",
+                                      "fields": {
+                                        "item": "Average Entry Price"
+                                      }
+                                    }
+                                  },
+                                  "b": {
+                                    "block": {
+                                      "type": "number",
+                                      "fields": {
+                                        "n": 0.95
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      },
+                      "do": {
+                        "block": {
+                          "type": "sellAll",
+                          "next": {
+                            "block": {
+                              "type": "setVar",
+                              "fields": {
+                                "var": "bet"
+                              },
+                              "inputs": {
+                                "value": {
+                                  "block": {
+                                    "type": "arith",
+                                    "fields": {
+                                      "op": "×"
+                                    },
+                                    "inputs": {
+                                      "a": {
+                                        "block": {
+                                          "type": "getVar",
+                                          "fields": {
+                                            "var": "bet"
+                                          }
+                                        }
+                                      },
+                                      "b": {
+                                        "block": {
+                                          "type": "number",
+                                          "fields": {
+                                            "n": 2
+                                          }
+                                        }
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      ]
+    }
+  }
+}

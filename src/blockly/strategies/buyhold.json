@@ -1,0 +1,63 @@
+{
+  "vars": [],
+  "setupJson": {
+    "blocks": {
+      "blocks": []
+    }
+  },
+  "onBarJson": {
+    "blocks": {
+      "blocks": [
+        {
+          "type": "if",
+          "inputs": {
+            "condition": {
+              "block": {
+                "type": "compare",
+                "fields": {
+                  "op": "="
+                },
+                "inputs": {
+                  "a": {
+                    "block": {
+                      "type": "portfolio",
+                      "fields": {
+                        "item": "Position"
+                      }
+                    }
+                  },
+                  "b": {
+                    "block": {
+                      "type": "number",
+                      "fields": {
+                        "n": 0
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "do": {
+              "block": {
+                "type": "buy",
+                "fields": {
+                  "unit": "% of cash"
+                },
+                "inputs": {
+                  "amount": {
+                    "block": {
+                      "type": "number",
+                      "fields": {
+                        "n": 100
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      ]
+    }
+  }
+}

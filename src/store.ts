@@ -92,7 +92,7 @@ export function syncWorkspaces(setupJson: any, onBarJson: any) {
 
 export function exportStateJson(): string {
   return JSON.stringify(
-    { version: 1, vars: state.vars, setupJson: state.setupJson, onBarJson: state.onBarJson },
+    { vars: state.vars, setupJson: state.setupJson, onBarJson: state.onBarJson },
     null,
     2,
   );

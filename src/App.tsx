@@ -14,12 +14,12 @@ import { StepIndicator } from './ui/StepIndicator';
 import { Icon } from './ui/Icon';
 import { Landing } from './ui/Landing';
 import { BuildPanel, TestPanel, RunPanel, ResultsPanel, ExportPanel } from './ui/panels';
-import { MakeVarModal } from './ui/Modals';
+import { MakeVarModal, StratPickerModal } from './ui/Modals';
 
 type Page = 'landing' | 'build' | 'backtest';
 type BuildTab = 'build' | 'test' | 'export';
 type RunMode = 'backtest' | 'simulate';
-type ModalState = { type: 'var' } | null;
+type ModalState = { type: 'var' } | { type: 'strat' } | null;
 
 type BacktestCfg = Omit<BacktestSpec, 'mode'>;
 type SimulateCfg = Omit<SimulateSpec, 'mode'>;
@@ -220,6 +220,12 @@ export default function App() {
   const modals = (
     <>
       {modal?.type === 'var' && <MakeVarModal onClose={() => setModal(null)} onConfirm={(n) => addVar(n)} />}
+      {modal?.type === 'strat' && (
+        <StratPickerModal
+          onClose={() => setModal(null)}
+          onPick={(s) => { editorRef.current?.loadStrategy(s); setModal(null); }}
+        />
+      )}
     </>
   );
 
@@ -239,7 +245,7 @@ export default function App() {
                 <button className="iconbtn" title="Undo (Ctrl+Z)" onClick={() => editorRef.current?.undo()}><Icon name="undo" size={15} /></button>
                 <button className="iconbtn" title="Redo (Ctrl+Shift+Z)" onClick={() => editorRef.current?.redo()}><Icon name="redo" size={15} /></button>
                 <span className="divider" />
-                <button className="iconbtn" title="Load example" onClick={() => editorRef.current?.loadExample()}><Icon name="zap" size={15} /></button>
+                <button className="iconbtn" title="Load a strategy" onClick={() => setModal({ type: 'strat' })}><Icon name="zap" size={15} /></button>
                 <button className="iconbtn" title="Clear all" onClick={() => editorRef.current?.clearAll()}><Icon name="trash" size={15} /></button>
                 <span className="spacer" />
                 <span className="mono muted" style={{ fontSize: 10 }}>drag from the toolbox · right-click a block for menu</span>

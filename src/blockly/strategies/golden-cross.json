@@ -1,0 +1,178 @@
+{
+  "vars": [],
+  "setupJson": {
+    "blocks": {
+      "blocks": []
+    }
+  },
+  "onBarJson": {
+    "blocks": {
+      "blocks": [
+        {
+          "type": "ifelse",
+          "inputs": {
+            "condition": {
+              "block": {
+                "type": "compare",
+                "fields": {
+                  "op": "="
+                },
+                "inputs": {
+                  "a": {
+                    "block": {
+                      "type": "portfolio",
+                      "fields": {
+                        "item": "Position"
+                      }
+                    }
+                  },
+                  "b": {
+                    "block": {
+                      "type": "number",
+                      "fields": {
+                        "n": 0
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "do": {
+              "block": {
+                "type": "if",
+                "inputs": {
+                  "condition": {
+                    "block": {
+                      "type": "compare",
+                      "fields": {
+                        "op": ">"
+                      },
+                      "inputs": {
+                        "a": {
+                          "block": {
+                            "type": "window",
+                            "fields": {
+                              "fn": "average",
+                              "src": "Close"
+                            },
+                            "inputs": {
+                              "n": {
+                                "shadow": {
+                                  "type": "number",
+                                  "fields": {
+                                    "n": 10
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        },
+                        "b": {
+                          "block": {
+                            "type": "window",
+                            "fields": {
+                              "fn": "average",
+                              "src": "Close"
+                            },
+                            "inputs": {
+                              "n": {
+                                "shadow": {
+                                  "type": "number",
+                                  "fields": {
+                                    "n": 30
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "do": {
+                    "block": {
+                      "type": "buy",
+                      "fields": {
+                        "unit": "% of cash"
+                      },
+                      "inputs": {
+                        "amount": {
+                          "block": {
+                            "type": "number",
+                            "fields": {
+                              "n": 100
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "else": {
+              "block": {
+                "type": "if",
+                "inputs": {
+                  "condition": {
+                    "block": {
+                      "type": "compare",
+                      "fields": {
+                        "op": "<"
+                      },
+                      "inputs": {
+                        "a": {
+                          "block": {
+                            "type": "window",
+                            "fields": {
+                              "fn": "average",
+                              "src": "Close"
+                            },
+                            "inputs": {
+                              "n": {
+                                "shadow": {
+                                  "type": "number",
+                                  "fields": {
+                                    "n": 10
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        },
+                        "b": {
+                          "block": {
+                            "type": "window",
+                            "fields": {
+                              "fn": "average",
+                              "src": "Close"
+                            },
+                            "inputs": {
+                              "n": {
+                                "shadow": {
+                                  "type": "number",
+                                  "fields": {
+                                    "n": 30
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "do": {
+                    "block": {
+                      "type": "sellAll"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      ]
+    }
+  }
+}

@@ -397,6 +397,19 @@ body {
 .modal__body { padding: 18px; overflow-y: auto; }
 .modal__foot { padding: 14px 18px; border-top: 1px solid var(--border); display: flex; gap: 10px; justify-content: flex-end; }
 
+/* strategy picker */
+.strat-list { display: flex; flex-direction: column; gap: 8px; }
+.strat-item {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 3px;
+  width: 100%; padding: 11px 12px; border-radius: 9px;
+  border: 1px solid var(--border); background: var(--panel2);
+  color: var(--text); font-family: inherit; text-align: left; cursor: pointer;
+  transition: all 0.12s ease;
+}
+.strat-item:hover { border-color: var(--accent); background: var(--accent-dim); }
+.strat-item__name { font-family: var(--mono); font-weight: 700; font-size: 13px; }
+.strat-item__desc { font-size: 12px; color: var(--muted); line-height: 1.5; }
+
 /* status bar */
 .statusbar {
   display: flex; align-items: center; gap: 16px;
