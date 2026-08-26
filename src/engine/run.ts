@@ -1,22 +1,16 @@
 // ─────────────────────────────────────────────────────────────────────────────
-// Interpreter + backtest + metrics + score + attribution.
+// Interpreter + backtest + metrics + attribution.
 // Long-only crypto spot, bar-based. All in-memory, browser-side.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import type { Strategy, Block, FieldValue } from '../ir';
 import type { Bar } from './data';
-import { generateBars } from './data';
 import { explainValue } from './explain';
 
 export interface BacktestConfig {
-  pair: string;
-  timeframe: string;
-  bars: number;
   startCash: number;
   feeBps: number;
   slippageBps: number;
-  seed: number;
-  source: 'synthetic' | 'binance';
 }
 
 export interface TradeReasonLeaf {
@@ -41,9 +35,13 @@ export interface Trade {
 
 export interface Metrics {
   totalReturn: number;
+  cagr: number;
   buyHold: number;
+  annVol: number;
   maxDrawdown: number;
   sharpe: number;
+  sortino: number;
+  calmar: number;
   winRate: number | null;
   profitFactor: number | null;
   trades: number;
@@ -51,27 +49,11 @@ export interface Metrics {
   bars: number;
 }
 
-export interface ScoreBreakdown {
-  label: string;
-  points: number;
-  max: number;
-  detail: string;
-}
-
-export interface Score {
-  total: number;
-  breakdown: ScoreBreakdown[];
-}
-
-export interface BacktestCore {
+export interface BacktestResult {
   bars: Bar[];
   equity: number[];
   trades: Trade[];
   metrics: Metrics;
-}
-
-export interface BacktestResult extends BacktestCore {
-  score: Score;
 }
 
 // ── helpers ──────────────────────────────────────────────────────────────────
@@ -458,7 +440,7 @@ function execStmt(rt: RT, id: string) {
 
 // ── backtest ─────────────────────────────────────────────────────────────────
 
-export function runBacktest(strategy: Strategy, cfg: BacktestConfig, bars: Bar[], forceFalse: Set<string> = new Set()): BacktestCore {
+export function runBacktest(strategy: Strategy, cfg: BacktestConfig, bars: Bar[], forceFalse: Set<string> = new Set()): BacktestResult {
   const rt: RT = {
     strategy, bars, cfg,
     cash: cfg.startCash,
@@ -487,11 +469,6 @@ export function runBacktest(strategy: Strategy, cfg: BacktestConfig, bars: Bar[]
   return { bars, equity, trades: rt.trades, metrics };
 }
 
-export function fullBacktest(strategy: Strategy, cfg: BacktestConfig, bars: Bar[]): BacktestResult {
-  const core = runBacktest(strategy, cfg, bars);
-  return { ...core, score: computeScore(strategy, cfg, bars, core.metrics) };
-}
-
 // ── metrics ──────────────────────────────────────────────────────────────────
 
 function computeMetrics(bars: Bar[], equity: number[], trades: Trade[], startCash: number): Metrics {
@@ -506,7 +483,7 @@ function computeMetrics(bars: Bar[], equity: number[], trades: Trade[], startCas
     if (peak > 0) maxDrawdown = Math.max(maxDrawdown, (peak - e) / peak);
   }
 
-  // sharpe (per-bar returns)
+  // per-bar returns
   const rets: number[] = [];
   for (let i = 1; i < equity.length; i++) {
     if (equity[i - 1] > 0) rets.push(equity[i] / equity[i - 1] - 1);
@@ -517,6 +494,19 @@ function computeMetrics(bars: Bar[], equity: number[], trades: Trade[], startCas
     : 0;
   const bpy = barsPerYearFor(trades, bars);
   const sharpe = std > 0 ? (mean / std) * Math.sqrt(bpy) : 0;
+  const annVol = std * Math.sqrt(bpy);
+
+  // downside deviation (Sortino)
+  const downs = rets.filter((r) => r < 0);
+  const dstd = downs.length > 1
+    ? Math.sqrt(downs.reduce((a, b) => a + (b - mean) ** 2, 0) / (downs.length - 1))
+    : 0;
+  const sortino = dstd > 0 ? (mean / dstd) * Math.sqrt(bpy) : 0;
+
+  // CAGR + Calmar
+  const years = bars.length > 0 ? bars.length / bpy : 0;
+  const cagr = years > 0 && finalValue > 0 ? Math.pow(finalValue / startCash, 1 / years) - 1 : 0;
+  const calmar = maxDrawdown > 0 ? cagr / maxDrawdown : 0;
 
   const sells = trades.filter((t) => t.side === 'SELL' && t.pnl != null);
   const wins = sells.filter((t) => (t.pnl ?? 0) > 0);
@@ -526,8 +516,8 @@ function computeMetrics(bars: Bar[], equity: number[], trades: Trade[], startCas
   const profitFactor = grossLoss > 0 ? grossProfit / grossLoss : grossProfit > 0 ? Infinity : null;
 
   return {
-    totalReturn, buyHold, maxDrawdown, sharpe, winRate, profitFactor,
-    trades: trades.length, finalValue, bars: bars.length,
+    totalReturn, cagr, buyHold, annVol, maxDrawdown, sharpe, sortino, calmar,
+    winRate, profitFactor, trades: trades.length, finalValue, bars: bars.length,
   };
 }
 
@@ -537,71 +527,6 @@ function barsPerYearFor(_trades: Trade[], bars: Bar[]): number {
   const dt = bars[1].t - bars[0].t;
   if (dt <= 0) return 365;
   return Math.max(1, Math.round((365 * 24 * 3600 * 1000) / dt));
-}
-
-// ── score ────────────────────────────────────────────────────────────────────
-
-function blockCount(strategy: Strategy): number {
-  const seen = new Set<string>();
-  const visit = (id: string) => {
-    if (seen.has(id)) return;
-    seen.add(id);
-    const b = strategy.blocks[id];
-    b?.statements && Object.values(b.statements).forEach((ids) => ids.forEach(visit));
-    b?.values && Object.values(b.values).forEach((cid) => cid && visit(cid));
-  };
-  strategy.setup.forEach(visit);
-  strategy.onBar.forEach(visit);
-  strategy.functions.forEach((f) => f.returnBlockId && visit(f.returnBlockId));
-  return seen.size;
-}
-
-function computeScore(strategy: Strategy, cfg: BacktestConfig, bars: Bar[], m: Metrics): Score {
-  const bd: ScoreBreakdown[] = [];
-
-  // performance (absolute) — 15
-  const perf = 15 * clamp(m.totalReturn / 1.0, 0, 1);
-  bd.push({ label: 'Performance', points: perf, max: 15, detail: `${(m.totalReturn * 100).toFixed(1)}% return` });
-
-  // benchmark / alpha — 15
-  const alpha = m.totalReturn - m.buyHold;
-  const bench = 15 * clamp(alpha / 1.0, 0, 1);
-  bd.push({ label: 'Benchmark', points: bench, max: 15, detail: `${(alpha * 100).toFixed(1)}% vs buy & hold` });
-
-  // risk — 20 (drawdown + sharpe)
-  const ddPts = 10 * clamp(1 - m.maxDrawdown, 0, 1);
-  const sharpePts = 10 * clamp(m.sharpe / 2, 0, 1);
-  bd.push({ label: 'Risk', points: ddPts + sharpePts, max: 20, detail: `${(m.maxDrawdown * 100).toFixed(1)}% max DD, Sharpe ${m.sharpe.toFixed(2)}` });
-
-  // consistency — 15
-  const wr = m.winRate ?? 0.5;
-  const pf = m.profitFactor == null || !Number.isFinite(m.profitFactor) ? 1 : m.profitFactor;
-  const wrPts = 7.5 * clamp(wr, 0, 1);
-  const pfPts = 7.5 * clamp(pf / 2, 0, 1);
-  bd.push({ label: 'Consistency', points: wrPts + pfPts, max: 15, detail: `${m.winRate == null ? '—' : (m.winRate * 100).toFixed(0) + '% win'} / PF ${m.profitFactor == null ? '—' : Number.isFinite(m.profitFactor) ? m.profitFactor.toFixed(2) : '∞'}` });
-
-  // robustness — 20 (return stability across market seeds)
-  const seeds = [cfg.seed + 101, cfg.seed + 202, cfg.seed + 303, cfg.seed + 404];
-  const rs: number[] = [m.totalReturn];
-  for (const s of seeds) {
-    const alt = generateBars(cfg.pair, cfg.timeframe, Math.min(bars.length, 240), s);
-    const r = runBacktest(strategy, { ...cfg, bars: alt.length }, alt);
-    rs.push(r.metrics.totalReturn);
-  }
-  const rmean = rs.reduce((a, b) => a + b, 0) / rs.length;
-  const rstd = Math.sqrt(rs.reduce((a, b) => a + (b - rmean) ** 2, 0) / rs.length);
-  const cv = Math.abs(rmean) > 1e-6 ? rstd / Math.abs(rmean) : rstd;
-  const robust = 20 * clamp(1 - cv / 1.5, 0, 1);
-  bd.push({ label: 'Robustness', points: robust, max: 20, detail: `return σ ${(rstd * 100).toFixed(1)}% across markets` });
-
-  // complexity — 15 (bell curve around ~12 blocks)
-  const bc = blockCount(strategy);
-  const cx = bc <= 0 ? 0 : Math.exp(-((bc - 12) ** 2) / 220);
-  const complexity = 15 * clamp(cx, 0, 1);
-  bd.push({ label: 'Complexity', points: complexity, max: 15, detail: `${bc} blocks` });
-
-  const total = Math.round(clamp(bd.reduce((a, b) => a + b.points, 0), 0, 100));
-  return { total, breakdown: bd };
 }
 
 // ── attribution ("what mattered?") ───────────────────────────────────────────

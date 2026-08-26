@@ -3,15 +3,18 @@
   "private": true,
   "version": "0.1.0",
   "type": "module",
+  "workspaces": ["packages/*"],
   "license": "AGPL-3.0",
   "description": "Stratch — Scratch-style crypto trading strategy game",
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build",
+    "predev": "npm run build -w @stratch/market-sim",
+    "build": "npm run build -w @stratch/market-sim && tsc && vite build",
     "preview": "vite preview",
     "test:engine": "tsx tests/engine.test.ts"
   },
   "dependencies": {
+    "@stratch/market-sim": "workspace:*",
     "blockly": "^11.2.2",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",

@@ -1,35 +1,58 @@
 // ─────────────────────────────────────────────────────────────────────────────
 // Stratch — top-level app shell.
-//   landing  ->  Build & Test (page 1)  ->  Backtest & Results (page 2)
+//   landing  ->  Build & Test (page 1)  ->  Simulate / Backtest (page 2)
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { useMemo, useRef, useState } from 'react';
 import { StrategyEditor, type StrategyEditorHandle } from './blockly/StrategyEditor';
 import { useEditorState, addVar, renameVar, deleteVar, importState, exportStateJson } from './store';
-import type { BacktestConfig, BacktestResult, Attribution } from './engine/run';
-import { computeBacktest, type BacktestOutput } from './engine/compute';
+import type { BacktestResult, Attribution } from './engine/run';
+import { computeRun, type RunSpec, type BacktestSpec, type SimulateSpec, type RunOutput, type SimulateResult } from './engine/compute';
 import { validate, exportJs, exportNatural, type Issue } from './engine/tools';
-import { explainStrategy } from './engine/explain';
 import { TopBar } from './ui/TopBar';
 import { StepIndicator } from './ui/StepIndicator';
 import { Icon } from './ui/Icon';
 import { Landing } from './ui/Landing';
-import { BuildPanel, TestPanel, BacktestPanel, ResultsPanel, ExportPanel } from './ui/panels';
+import { BuildPanel, TestPanel, RunPanel, ResultsPanel, ExportPanel } from './ui/panels';
 import { MakeVarModal } from './ui/Modals';
 
 type Page = 'landing' | 'build' | 'backtest';
 type BuildTab = 'build' | 'test' | 'export';
+type RunMode = 'backtest' | 'simulate';
 type ModalState = { type: 'var' } | null;
 
-const DEFAULT_CONFIG: BacktestConfig = {
+type BacktestCfg = Omit<BacktestSpec, 'mode'>;
+type SimulateCfg = Omit<SimulateSpec, 'mode'>;
+
+const DEFAULT_BACKTEST: BacktestCfg = {
+  source: 'binance',
   pair: 'BTC/USDT',
   timeframe: '1d',
   bars: 500,
   startCash: 10000,
   feeBps: 10,
   slippageBps: 5,
+};
+
+const DEFAULT_SIMULATE: SimulateCfg = {
+  pair: 'BTC/USDT',
+  model: 'gbm',
+  s0: 42000,
+  mu: 0.1,
+  sigma: 0.55,
+  nu: 4,
+  v0: 0.09,
+  theta: 0.09,
+  kappa: 2,
+  xi: 0.3,
+  rho: -0.7,
+  timeframe: '1d',
+  bars: 500,
+  paths: 150,
   seed: 42,
-  source: 'synthetic',
+  startCash: 10000,
+  feeBps: 10,
+  slippageBps: 5,
 };
 
 export default function App() {
@@ -39,13 +62,14 @@ export default function App() {
 
   const [page, setPage] = useState<Page>('landing');
   const [buildTab, setBuildTab] = useState<BuildTab>('build');
-  const [config, setConfig] = useState<BacktestConfig>(DEFAULT_CONFIG);
+  const [mode, setMode] = useState<RunMode>('backtest');
+  const [backtestCfg, setBacktestCfg] = useState<BacktestCfg>(DEFAULT_BACKTEST);
+  const [simulateCfg, setSimulateCfg] = useState<SimulateCfg>(DEFAULT_SIMULATE);
   const [result, setResult] = useState<BacktestResult | null>(null);
   const [attribution, setAttribution] = useState<Attribution[] | null>(null);
+  const [mc, setMc] = useState<SimulateResult | null>(null);
   const [issues, setIssues] = useState<Issue[] | null>(null);
-  const [explanation, setExplanation] = useState<string | null>(null);
   const [running, setRunning] = useState(false);
-  const [sourceNote, setSourceNote] = useState<string | null>(null);
   const [btError, setBtError] = useState<string | null>(null);
   const [modal, setModal] = useState<ModalState>(null);
   const [expandedTrade, setExpandedTrade] = useState<string | null>(null);
@@ -106,7 +130,6 @@ export default function App() {
   function runTest() {
     const list = validate(strategy);
     setIssues(list);
-    setExplanation(explainStrategy(strategy));
     setPage('build');
     setBuildTab('test');
     highlightIssues(list);
@@ -119,18 +142,18 @@ export default function App() {
     return workerRef.current;
   }
 
-  function runInWorker(): Promise<BacktestOutput> {
+  function runInWorker(spec: RunSpec): Promise<RunOutput> {
     return new Promise((resolve, reject) => {
       let settled = false;
       const worker = getWorker();
       const timer = setTimeout(() => {
         if (!settled) { settled = true; reject(new Error('worker timeout')); }
-      }, 3000);
-      worker.onmessage = (e: MessageEvent<{ ok: boolean } & Partial<BacktestOutput> & { error?: string }>) => {
+      }, 60_000);
+      worker.onmessage = (e: MessageEvent<{ ok: boolean } & Partial<RunOutput> & { error?: string }>) => {
         if (settled) return;
         settled = true;
         clearTimeout(timer);
-        if (e.data.ok && e.data.result) resolve(e.data as BacktestOutput);
+        if (e.data.ok && e.data.kind) resolve(e.data as RunOutput);
         else reject(new Error(e.data.error ?? 'worker returned no result'));
       };
       worker.onerror = (e) => {
@@ -140,40 +163,45 @@ export default function App() {
         reject(new Error(e.message || 'worker failed to load'));
       };
       try {
-        worker.postMessage({ strategy, config });
+        worker.postMessage({ strategy, spec });
       } catch (err) {
         if (!settled) { settled = true; clearTimeout(timer); reject(err instanceof Error ? err : new Error(String(err))); }
       }
     });
   }
 
-  function runBacktest() {
+  function runNow() {
     setRunning(true);
-    setSourceNote(null);
     setBtError(null);
+
+    const spec: RunSpec = mode === 'simulate'
+      ? { mode: 'simulate', ...simulateCfg }
+      : { mode: 'backtest', ...backtestCfg };
 
     // Yield so the "Running…" state paints first.
     new Promise((r) => setTimeout(r, 30))
-      .then(() => runInWorker().catch(() => computeBacktest(strategy, config))) // worker first, sync fallback
+      .then(() => runInWorker(spec).catch(() => computeRun(strategy, spec))) // worker first, sync fallback
       .then((out) => {
-        setResult(out.result);
-        setAttribution(out.attribution);
-        console.log('[backtest] result:', JSON.stringify({ trades: out.result.metrics.trades, ret: out.result.metrics.totalReturn, final: out.result.metrics.finalValue }));
-        if (config.source === 'binance' && out.source === 'synthetic') {
-          setSourceNote('Binance unavailable — fell back to synthetic data');
+        if (out.kind === 'simulate') {
+          setMc(out.mc);
+          setResult(null);
+          setAttribution(null);
+        } else {
+          setResult(out.result);
+          setAttribution(out.attribution);
+          setMc(null);
         }
         setPage('backtest');
       })
       .catch((err) => {
-        console.error('[backtest] failed:', err);
-        setSourceNote('Backtest failed');
+        console.error('[run] failed:', err);
         setBtError(err instanceof Error ? err.message : String(err));
       })
       .finally(() => setRunning(false));
   }
 
   if (page === 'landing') {
-    return <Landing onStart={() => setPage('build')} />;
+    return <Landing onStart={() => setPage('build')} onHome={() => setPage('landing')} />;
   }
 
   const statusBar = (
@@ -181,8 +209,9 @@ export default function App() {
       <span className="dot" />
       <span>{blockCount} blocks</span>
       <span className="spacer" />
-      {sourceNote && <span style={{ color: 'var(--amber)' }}>{sourceNote}</span>}
-      <span>{config.pair} · {config.timeframe} · {config.bars} bars · {config.source}</span>
+      {mode === 'simulate'
+        ? <span>{simulateCfg.pair} · {simulateCfg.model} · {simulateCfg.bars} bars · {simulateCfg.paths} paths</span>
+        : <span>{backtestCfg.pair} · {backtestCfg.timeframe} · {backtestCfg.bars} bars · {backtestCfg.source}</span>}
     </div>
   );
 
@@ -197,9 +226,9 @@ export default function App() {
       <div className="page-transition" key={page}>
       {page === 'build' ? (
         <>
-          <TopBar>
+          <TopBar onHome={() => setPage('landing')}>
             <StepIndicator current={currentStep} onStep={gotoStep} />
-            <button className="btn btn--primary" onClick={() => setPage('backtest')}>Backtest <Icon name="arrowRight" size={14} /></button>
+            <button className="btn btn--primary" onClick={() => setPage('backtest')}>Run <Icon name="arrowRight" size={14} /></button>
           </TopBar>
 
           <div className="main">
@@ -243,7 +272,7 @@ export default function App() {
                   />
                 )}
                 {buildTab === 'test' && (
-                  <TestPanel issues={issues} explanation={explanation} onTest={runTest} onHighlight={(id) => editorRef.current?.highlightBlock(id)} />
+                  <TestPanel issues={issues} onTest={runTest} onHighlight={(id) => editorRef.current?.highlightBlock(id)} />
                 )}
                 {buildTab === 'export' && <ExportPanel natural={natural} js={js} json={strategyJson} />}
               </div>
@@ -254,30 +283,41 @@ export default function App() {
         </>
       ) : (
         <>
-          <TopBar>
+          <TopBar onHome={() => setPage('landing')}>
             <StepIndicator current={currentStep} onStep={gotoStep} />
             <button className="btn" onClick={() => setPage('build')}><Icon name="arrowLeft" size={14} /> Edit strategy</button>
           </TopBar>
 
           <div className="main">
             <div className="backtest-left">
-              <BacktestPanel config={config} setConfig={setConfig} onRun={runBacktest} running={running} />
+              <RunPanel
+                mode={mode}
+                setMode={setMode}
+                backtestCfg={backtestCfg}
+                setBacktestCfg={setBacktestCfg}
+                simulateCfg={simulateCfg}
+                setSimulateCfg={setSimulateCfg}
+                onRun={runNow}
+                running={running}
+              />
             </div>
             <div className="results-right">
               {btError && (
                 <div className="card issue issue--error" style={{ maxWidth: 640 }}>
                   <div className="issue__icon">!</div>
                   <div>
-                    <div>Backtest failed</div>
+                    <div>Run failed</div>
                     <div className="mono" style={{ fontSize: 12, marginTop: 4 }}>{btError}</div>
                     <div className="hint" style={{ marginTop: 6 }}>Open the browser console for details, or go back and fix the blocks.</div>
                   </div>
                 </div>
               )}
               <ResultsPanel
+                mode={mode}
                 result={result}
                 attribution={attribution}
-                startCash={config.startCash}
+                mc={mc}
+                startCash={mode === 'simulate' ? simulateCfg.startCash : backtestCfg.startCash}
                 expandedTrade={expandedTrade}
                 setExpandedTrade={setExpandedTrade}
               />

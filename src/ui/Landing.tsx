@@ -3,38 +3,18 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { Icon } from './Icon';
+import { TopBar } from './TopBar';
 
 const CARDS = [
   { n: '01', title: 'Snap blocks', text: 'Write a strategy by dragging logic, market and trade blocks — no code, no forms.' },
   { n: '02', title: 'Test it', text: 'STRATCH validates your blocks and reads the strategy back to you in plain English.' },
-  { n: '03', title: 'Backtest & score', text: 'Run it on crypto history, get a 0–100 score, and see exactly why it traded.' },
+  { n: '03', title: 'Simulate & backtest', text: 'Backtest on real exchange history, or Monte-Carlo simulate it across many market paths.' },
 ];
 
-const TICKS: [string, number, number][] = [
-  ['BTC/USDT', 43218.4, 1.24],
-  ['ETH/USDT', 2417.9, -0.62],
-  ['SOL/USDT', 112.3, 3.81],
-  ['BNB/USDT', 318.5, 0.44],
-  ['XRP/USDT', 0.512, -1.15],
-  ['DOGE/USDT', 0.0812, 2.07],
-];
-
-export function Landing({ onStart }: { onStart: () => void }) {
+export function Landing({ onStart, onHome }: { onStart: () => void; onHome: () => void }) {
   return (
     <div className="landing page-transition">
-      <div className="landing__nav">
-        <div className="brand">
-          <div className="brand__logo">S</div>
-          <div>
-            <div>STRATCH</div>
-            <div className="brand__tag">BUILD · TEST · TRADE</div>
-          </div>
-        </div>
-        <div className="landing__nav-right">
-          <a className="gh-link" href="https://github.com/niyangbai/stratch" target="_blank" rel="noreferrer" title="View on GitHub"><Icon name="github" size={18} /></a>
-          <button className="btn btn--primary" onClick={onStart}>Start building</button>
-        </div>
-      </div>
+      <TopBar onHome={onHome} />
 
       <div className="landing__hero">
         <div className="landing__eyebrow">BUILD A TRADING BOT · BLOCK BY BLOCK</div>
@@ -43,8 +23,8 @@ export function Landing({ onStart }: { onStart: () => void }) {
           <span className="accent">with blocks.</span>
         </h1>
         <p className="landing__sub">
-          You're the quant. Snap blocks together, run the strategy on real crypto history,
-          and chase a 100 score. No code — just logic you can read.
+          You're the quant. Snap blocks together, backtest on real exchange history or
+          Monte-Carlo simulate thousands of markets. No code — just logic you can read.
         </p>
         <div className="landing__cta">
           <button className="btn btn--primary btn--big" onClick={onStart}>Start building <Icon name="arrowRight" size={16} /></button>
@@ -60,21 +40,6 @@ export function Landing({ onStart }: { onStart: () => void }) {
             <div className="landing__card-text">{c.text}</div>
           </div>
         ))}
-      </div>
-
-      <div className="landing__ticker">
-        <span className="landing__tape-label"><span className="pulse" /> LIVE</span>
-        <div className="ticker">
-          <div className="ticker__track">
-            {[...TICKS, ...TICKS].map((t, i) => (
-              <div className="tick" key={i}>
-                <span className="tick__pair">{t[0]}</span>
-                <span className="tick__px">{t[1].toLocaleString('en-US', { maximumFractionDigits: 4 })}</span>
-                <span className={`tick__chg ${t[2] >= 0 ? 'up' : 'down'}`}><Icon name={t[2] >= 0 ? 'arrowUp' : 'arrowDown'} size={11} /> {Math.abs(t[2]).toFixed(2)}%</span>
-              </div>
-            ))}
-          </div>
-        </div>
       </div>
 
       <div className="landing__footer">

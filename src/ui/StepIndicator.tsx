@@ -4,7 +4,7 @@
 
 import { Icon } from './Icon';
 
-const STEPS = ['Build & Test', 'Backtest & Results'];
+const STEPS = ['Build & Test', 'Simulate & Results'];
 
 export function StepIndicator({ current, onStep }: { current: number; onStep: (n: number) => void }) {
   return (

@@ -147,3 +147,81 @@ export function EquityChart({ equity, startCash }: { equity: number[]; startCash
     </div>
   );
 }
+
+export function MonteCarloChart(props: {
+  equityQuantiles: { q: number; series: number[] }[];
+  sampleEquity: number[][];
+  startCash: number;
+}) {
+  const { equityQuantiles, sampleEquity, startCash } = props;
+  const ref = useChartCanvas((ctx, w, h) => {
+    const pad = 8;
+    if (!equityQuantiles.length) return;
+    const n = equityQuantiles[0].series.length;
+    if (n < 2) return;
+    grid(ctx, w, h);
+
+    const byQ = new Map(equityQuantiles.map((e) => [e.q, e.series]));
+
+    // y-range across quantile curves, sample paths and the cash baseline
+    let lo = Infinity, hi = -Infinity;
+    for (const e of equityQuantiles) for (const v of e.series) { if (v < lo) lo = v; if (v > hi) hi = v; }
+    for (const p of sampleEquity) for (const v of p) { if (v < lo) lo = v; if (v > hi) hi = v; }
+    if (startCash < lo) lo = startCash;
+    if (startCash > hi) hi = startCash;
+    if (!Number.isFinite(lo)) return;
+    if (lo === hi) { lo *= 0.99; hi *= 1.01; }
+
+    const x = (i: number) => pad + (i / (n - 1)) * (w - pad * 2);
+    const y = (v: number) => h - pad - ((v - lo) / (hi - lo)) * (h - pad * 2);
+
+    const line = (series: number[], color: string, width: number) => {
+      ctx.beginPath();
+      ctx.moveTo(x(0), y(series[0]));
+      for (let i = 1; i < n; i++) ctx.lineTo(x(i), y(series[i]));
+      ctx.strokeStyle = color;
+      ctx.lineWidth = width;
+      ctx.stroke();
+    };
+
+    const band = (lower: number[], upper: number[], color: string) => {
+      ctx.beginPath();
+      ctx.moveTo(x(0), y(lower[0]));
+      for (let i = 1; i < n; i++) ctx.lineTo(x(i), y(lower[i]));
+      for (let i = n - 1; i >= 0; i--) ctx.lineTo(x(i), y(upper[i]));
+      ctx.closePath();
+      ctx.fillStyle = color;
+      ctx.fill();
+    };
+
+    const p05 = byQ.get(0.05), p25 = byQ.get(0.25), p50 = byQ.get(0.5), p75 = byQ.get(0.75), p95 = byQ.get(0.95);
+    if (p05 && p95) band(p05, p95, 'rgba(34, 211, 238, 0.06)');
+    if (p25 && p75) band(p25, p75, 'rgba(34, 211, 238, 0.12)');
+
+    // faint individual paths (deliberately subtle)
+    for (const p of sampleEquity) line(p, 'rgba(148, 186, 231, 0.15)', 1);
+
+    // 25 / 75 percentile lines
+    if (p25) line(p25, 'rgba(34, 211, 238, 0.6)', 1.2);
+    if (p75) line(p75, 'rgba(34, 211, 238, 0.6)', 1.2);
+
+    if (p50) line(p50, '#22d3ee', 1.8);
+
+    // cash baseline
+    ctx.beginPath();
+    ctx.moveTo(pad, y(startCash));
+    ctx.lineTo(w - pad, y(startCash));
+    ctx.strokeStyle = 'rgba(140, 175, 220, 0.35)';
+    ctx.setLineDash([4, 4]);
+    ctx.lineWidth = 1;
+    ctx.stroke();
+    ctx.setLineDash([]);
+  }, [equityQuantiles, sampleEquity, startCash]);
+
+  return (
+    <div className="chart">
+      <div className="card__title">Equity distribution</div>
+      <div className="chart__canvas"><canvas ref={ref} /></div>
+    </div>
+  );
+}

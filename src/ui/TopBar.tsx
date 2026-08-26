@@ -17,17 +17,17 @@ const TICKS: [string, number, number][] = [
   ['DOT/USDT', 5.62, -2.4],
 ];
 
-export function TopBar({ children }: { children?: React.ReactNode }) {
+export function TopBar({ children, onHome }: { children?: React.ReactNode; onHome?: () => void }) {
   const doubled = [...TICKS, ...TICKS];
   return (
     <div className="topbar">
-      <div className="brand">
-        <div className="brand__logo">S</div>
-        <div>
-          <div>STRATCH</div>
-          <div className="brand__tag">BUILD · TEST · TRADE</div>
-        </div>
-      </div>
+      <button type="button" className="brand brand--link" onClick={onHome} title="Back to home" aria-label="STRATCH home">
+        <span className="brand__logo">S</span>
+        <span className="brand__copy">
+          <span className="brand__name">STRATCH</span>
+          <span className="brand__tag">BUILD · TEST · TRADE</span>
+        </span>
+      </button>
       <div className="ticker">
         <div className="ticker__track">
           {doubled.map((t, i) => (

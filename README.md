@@ -2,22 +2,22 @@
 
 **Build a crypto trading bot with blocks — no code, no forms.**
 
-STRATCH is a game where you are the quant. Instead of filling in a strategy form, you snap blocks together like Scratch to write a trading strategy, then run it against real crypto history and see how it scores.
+STRATCH is a game where you are the quant. Instead of filling in a strategy form, you snap blocks together like Scratch to write a trading strategy, then backtest it on real crypto history or Monte-Carlo simulate it.
 
 ---
 
 ## The loop
 
 ```
-Build → Test My Strategy → Backtest → Score → Improve → Export
+Build → Test My Strategy → Simulate / Backtest → Metrics → Improve → Export
 ```
 
 The app is split into two screens, so the loop reads as two clear steps:
 
 1. **Build & Test** — snap blocks, validate them and export, all on one screen.
-2. **Backtest & Results** — choose the market and see your score, charts and trade history on the next screen.
+2. **Simulate & Results** — backtest on Binance history or Monte-Carlo simulate, then read metrics, distribution charts and trade history.
 
-You land on a welcome page first, then a two-step bar (`1 Build & Test · 2 Backtest & Results`) stays on top so you can jump between the two anytime.
+You land on a welcome page first, then a two-step bar (`1 Build & Test · 2 Simulate & Results`) stays on top so you can jump between the two anytime.
 
 Every strategy lives in two fixed zones — you never create them:
 
@@ -58,16 +58,14 @@ Buy the dip with a base bet, take profit at +5%, and double the bet after a −5
 ### 2 · Test My Strategy
 Hit **Test My Strategy**. STRATCH validates your blocks (it will point at any block that's broken) and reads your strategy back to you in plain English — so you know the machine understood exactly what you meant.
 
-### 3 · Backtest
-Pick the environment — crypto pair, timeframe, date range, starting cash, fee and slippage — then **Run Backtest**. The same strategy can be tried instantly on BTC, ETH or SOL and on any timeframe.
+### 3 · Simulate / Backtest
+Pick a mode — **Backtest** (real Binance history) or **Simulate** (Monte-Carlo). Backtest runs once on the pair/timeframe you pick. Simulate runs your strategy across many market paths drawn from a GBM, fat-tailed GBM or Heston model, each with its own parameters (drift, volatility, tail degrees of freedom, variance, …).
 
-### 4 · Score
-You get a **0–100 strategy score** (not just raw return — it weighs performance, benchmark, risk, consistency, robustness and complexity), plus:
+### 4 · Metrics
+No single score — you get the real numbers:
 
-- total return vs. buy & hold, max drawdown, Sharpe, win rate, profit factor
-- a price chart with your buy/sell markers
-- an equity curve
-- the full trade history
+- backtest: total return, CAGR, annualized volatility, max drawdown, Sharpe, Sortino, Calmar, win rate, profit factor — plus a price chart, an equity curve and the full trade history
+- simulate: the distribution of outcomes — median / mean / 5th–95th percentile return and positive-path rate — with a quantile fan chart and faint individual paths
 
 ### 5 · Improve
 Click any trade to see **why it happened** — the exact condition and the numbers at that bar. Then read **What mattered?** to see which conditions actually moved your result. Tighten your blocks and re-run.
@@ -96,9 +94,9 @@ npm run test:engine # headless tests for the strategy engine
 
 ## Scope
 
-First version: crypto **spot**, **long-only**, **single asset**, bar-based, historical backtest, pure frontend. No login, no backend, no live trading. Data comes from a deterministic synthetic market (reproducible by seed) or live Binance klines — all computed in your browser, with the backtest running in a Web Worker (and a synchronous fallback).
+First version: crypto **spot**, **long-only**, **single asset**, bar-based, pure frontend. No login, no backend, no live trading. Data comes from live Binance klines (backtest) or a seeded Monte-Carlo simulator (GBM / fat-tailed GBM / Heston) — all computed in your browser, with the run happening in a Web Worker (and a synchronous fallback).
 
-Under the hood it's React + TypeScript + [Blockly](https://github.com/google/blockly) (the project Scratch Blocks is forked from) with a dark crypto-terminal theme; the backtest runs in a Web Worker. The block editor compiles into a strategy model that is validated, run, explained, scored and exported from one source.
+Under the hood it's React + TypeScript + [Blockly](https://github.com/google/blockly) (the project Scratch Blocks is forked from) with a dark crypto-terminal theme. The block editor compiles into a strategy model that is validated, run, explained and exported from one source. The stochastic simulator is a separate workspace package, [`@stratch/market-sim`](packages/market-sim), so it can be reused in other projects.
 
 ---
 

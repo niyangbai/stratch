@@ -3,9 +3,9 @@
 // explain -> export). Run with:  npm run test:engine
 // ─────────────────────────────────────────────────────────────────────────────
 
+import { simulateBars } from '@stratch/market-sim';
 import { buildStrategy } from '../src/blockly/generator';
-import { generateBars } from '../src/engine/data';
-import { fullBacktest, attribute } from '../src/engine/run';
+import { runBacktest, attribute } from '../src/engine/run';
 import { validate, exportJs } from '../src/engine/tools';
 import { explainStrategy } from '../src/engine/explain';
 
@@ -18,16 +18,15 @@ function check(name: string, cond: boolean, extra?: string) {
   }
 }
 
-const CFG: any = {
-  pair: 'BTC/USDT',
-  timeframe: '1d',
-  bars: 500,
-  startCash: 10000,
-  feeBps: 10,
-  slippageBps: 5,
-  seed: 42,
-  source: 'synthetic',
-};
+const CFG = { startCash: 10000, feeBps: 10, slippageBps: 5 };
+
+function barsFor(seed: number) {
+  return simulateBars(
+    { model: 'gbm', dt: 1 / 365, steps: 500, params: { s0: 42000, mu: 0.1, sigma: 0.5 } },
+    seed,
+    { stepMs: 86_400_000 },
+  );
+}
 
 // 1) classic moving-average cross (uses a shadow number block for `n`)
 console.log('\n[1] moving-average cross');
@@ -70,11 +69,10 @@ console.log('\n[1] moving-average cross');
   check('builds the expected blocks (incl. shadow number)', Object.keys(strategy.blocks).length === 7, `got ${Object.keys(strategy.blocks).length}`);
   check('validate passes', validate(strategy).length === 0, JSON.stringify(validate(strategy)));
 
-  const bars = generateBars(CFG.pair, CFG.timeframe, CFG.bars, CFG.seed);
-  const res = fullBacktest(strategy, CFG, bars);
+  const bars = barsFor(42);
+  const res = runBacktest(strategy, CFG, bars);
   check('produces trades', res.metrics.trades > 0, `trades=${res.metrics.trades}`);
   check('produces a final value', res.metrics.finalValue > 0);
-  check('scores between 0 and 100', res.score.total >= 0 && res.score.total <= 100, `score=${res.score.total}`);
 
   const attr = attribute(strategy, CFG, bars, res);
   check('attribution has one condition', attr.length === 1);
@@ -155,8 +153,8 @@ console.log('\n[2] My Block defined in SETUP');
   const issues = validate(strategy);
   check('validate passes with a function + param', issues.length === 0, JSON.stringify(issues));
 
-  const bars = generateBars(CFG.pair, CFG.timeframe, CFG.bars, CFG.seed);
-  const res = fullBacktest(strategy, CFG, bars);
+  const bars = barsFor(42);
+  const res = runBacktest(strategy, CFG, bars);
   check('function strategy trades', res.metrics.trades > 0, `trades=${res.metrics.trades}`);
 
   const js = exportJs(strategy);

@@ -388,5 +388,5 @@ ${RUNTIME}`;
 // ── natural-language export ──────────────────────────────────────────────────
 
 export function exportNatural(strategy: Strategy): string {
-  return 'STRATEGY — plain English description\n\n' + explainStrategy(strategy);
+  return explainStrategy(strategy);
 }

@@ -1,7 +1,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 // Stratch — strategy intermediate representation (IR)
 // The strategy model is fully independent of the block UI, so it can be
-// rendered, validated, run, explained, scored and exported from one source.
+// rendered, validated, run, explained and exported from one source.
 // ─────────────────────────────────────────────────────────────────────────────
 
 export type Category =

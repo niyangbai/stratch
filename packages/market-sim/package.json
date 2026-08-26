@@ -1,0 +1,26 @@
+{
+  "name": "@stratch/market-sim",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Dependency-free stochastic market simulator — GBM, fat-tailed GBM and Heston Monte Carlo.",
+  "license": "AGPL-3.0",
+  "main": "dist/index.js",
+  "module": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev": "tsc -p tsconfig.json --watch"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.3"
+  }
+}
