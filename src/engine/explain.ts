@@ -1,6 +1,6 @@
 // ─────────────────────────────────────────────────────────────────────────────
-// Natural-language explanation of a strategy (for "Test -> Explain" and
-// for "Why did this trade happen?" attribution).
+// Natural-language explanation of a strategy (for the natural-language export
+// and for "Why did this trade happen?" attribution).
 // ─────────────────────────────────────────────────────────────────────────────
 
 import type { Strategy, Block, FieldValue } from '../ir';
@@ -29,11 +29,6 @@ function srcWord(src: string): string {
 function varName(strategy: Strategy, id: string): string {
   const v = strategy.vars.find((x) => x.id === id);
   return v ? v.name : 'undefined variable';
-}
-
-function fnName(strategy: Strategy, id: string): string {
-  const f = strategy.functions.find((x) => x.id === id);
-  return f ? f.name : 'undefined function';
 }
 
 const OP_WORD: Record<string, string> = {

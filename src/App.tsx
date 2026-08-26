@@ -55,6 +55,8 @@ const DEFAULT_SIMULATE: SimulateCfg = {
   slippageBps: 5,
 };
 
+const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+
 export default function App() {
   const state = useEditorState();
   const editorRef = useRef<StrategyEditorHandle>(null);
@@ -211,7 +213,7 @@ export default function App() {
       <span className="spacer" />
       {mode === 'simulate'
         ? <span>{simulateCfg.pair} · {simulateCfg.model} · {simulateCfg.bars} bars · {simulateCfg.paths} paths</span>
-        : <span>{backtestCfg.pair} · {backtestCfg.timeframe} · {backtestCfg.bars} bars · {backtestCfg.source}</span>}
+        : <span>{backtestCfg.pair} · {backtestCfg.timeframe} · {backtestCfg.bars} bars · {cap(backtestCfg.source)}</span>}
     </div>
   );
 

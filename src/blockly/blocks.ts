@@ -6,7 +6,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import * as Blockly from 'blockly';
-import { BLOCKS, CATEGORY_META, PALETTE, blockColor, type BlockDef, type Category, type Part, type FieldValue } from '../ir';
+import { BLOCKS, CATEGORY_META, PALETTE, blockColor, type BlockDef, type Part } from '../ir';
 
 // ── dynamic option providers (set by the editor component) ──────────────────
 

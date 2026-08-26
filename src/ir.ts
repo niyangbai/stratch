@@ -340,7 +340,7 @@ export const PALETTE: PaletteGroup[] = [
 // ── construction helpers ─────────────────────────────────────────────────────
 
 let _seq = 0;
-export function uid(prefix = 'b'): string {
+function uid(prefix = 'b'): string {
   _seq += 1;
   return `${prefix}_${Date.now().toString(36)}_${_seq}_${Math.random().toString(36).slice(2, 7)}`;
 }
@@ -349,73 +349,6 @@ export function newId(): string {
   return uid();
 }
 
-export function createBlock(type: string, overrides: Record<string, FieldValue> = {}): Block {
-  const def = BLOCKS[type];
-  const fields: Record<string, FieldValue> = {};
-  for (const p of def.parts) {
-    if (p.k !== 'field') continue;
-    if (p.f === 'dropdown' && p.options?.length) fields[p.name] = p.options[0];
-    else if (p.f === 'number') fields[p.name] = 0;
-    else if (p.f === 'text') fields[p.name] = '';
-    else if (p.f === 'var' || p.f === 'function') fields[p.name] = '';
-    else if (p.f === 'bool') fields[p.name] = false;
-  }
-  Object.assign(fields, def.defaults ?? {}, overrides);
-
-  const statements: Record<string, string[]> | undefined = def.statements
-    ? Object.fromEntries(def.statements.map((s) => [s, [] as string[]]))
-    : undefined;
-
-  const values: Record<string, string | null> = {};
-  for (const p of def.parts) if (p.k === 'value') values[p.name] = null;
-
-  return { id: newId(), type, fields, statements, values };
-}
-
 export function emptyStrategy(): Strategy {
   return { blocks: {}, vars: [], functions: [], setup: [], onBar: [] };
-}
-
-/** Clone a subtree rooted at `rootId`, returning a fresh id map. */
-export function cloneSubtree(strategy: Strategy, rootId: string, idMap: Map<string, string>): string {
-  const src = strategy.blocks[rootId];
-  const block: Block = {
-    id: newId(),
-    type: src.type,
-    fields: { ...src.fields },
-    statements: undefined,
-    values: undefined,
-  };
-  idMap.set(rootId, block.id);
-  if (src.statements) {
-    block.statements = {};
-    for (const [name, ids] of Object.entries(src.statements)) {
-      block.statements[name] = ids.map((id) => cloneSubtree(strategy, id, idMap));
-    }
-  }
-  if (src.values) {
-    block.values = {};
-    for (const [name, id] of Object.entries(src.values)) {
-      block.values[name] = id ? cloneSubtree(strategy, id, idMap) : null;
-    }
-  }
-  return block.id;
-}
-
-/** Collect every block id in the strategy (for validation / iteration). */
-export function allBlockIds(strategy: Strategy): string[] {
-  const out: string[] = [];
-  const seen = new Set<string>();
-  const visit = (id: string) => {
-    if (seen.has(id)) return;
-    seen.add(id);
-    out.push(id);
-    const b = strategy.blocks[id];
-    if (b?.statements) for (const ids of Object.values(b.statements)) ids.forEach(visit);
-    if (b?.values) for (const cid of Object.values(b.values)) if (cid) visit(cid);
-  };
-  strategy.setup.forEach(visit);
-  strategy.onBar.forEach(visit);
-  strategy.functions.forEach((f) => f.returnBlockId && visit(f.returnBlockId));
-  return out;
 }

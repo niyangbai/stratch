@@ -44,9 +44,6 @@ export function useEditorState(): EditorState {
 export function getState(): EditorState {
   return state;
 }
-export function useStrategy(): Strategy {
-  return useEditorState().strategy;
-}
 
 function rebuild(): EditorState {
   state = { ...state, strategy: buildStrategy(state.vars, state.setupJson, state.onBarJson) };
